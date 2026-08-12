@@ -301,21 +301,49 @@ body {
   border-radius: .9rem;
 }
 .cart-line {
-  display: flex; align-items: center; gap: .75rem;
-  padding: .6rem 0;
+  display: flex; align-items: center; gap: .7rem;
+  padding: .65rem 0;
   border-bottom: 1px solid var(--panel-border);
 }
-.cart-line .qty {
-  flex-shrink: 0;
-  min-width: 2rem; height: 2rem;
-  border-radius: 999px;
-  background: rgba(249,115,22,.12);
-  color: var(--accent-mid);
-  font-size: .8rem; font-weight: 700;
-  display: grid; place-content: center;
+.cart-line .nm {
+  flex: 1; font-size: .92rem;
+  display: flex; flex-direction: column; gap: .15rem;
 }
-.cart-line .nm { flex: 1; font-size: .92rem; }
+.cart-note { font-size: .75rem; color: var(--text-soft); font-style: italic; }
 .cart-line .pr { font-weight: 600; white-space: nowrap; }
+
+/* stepper qty di dalam baris keranjang */
+.cart-qty {
+  flex-shrink: 0;
+  display: flex; align-items: center; gap: .1rem;
+  background: rgba(249,115,22,.1);
+  border-radius: 999px;
+  padding: .15rem;
+}
+.cart-qty span {
+  min-width: 1.5rem; text-align: center;
+  font-size: .82rem; font-weight: 700; color: var(--accent-mid);
+}
+.cart-qty button {
+  border: none; background: transparent; cursor: pointer;
+  color: var(--accent-mid);
+  width: 1.7rem; height: 1.7rem; border-radius: 50%;
+  display: grid; place-content: center;
+  transition: background .15s ease;
+}
+.cart-qty button:hover { background: rgba(249,115,22,.2); }
+.cart-qty .material-symbols-outlined { font-size: 1.05rem; }
+
+.cart-del {
+  flex-shrink: 0;
+  border: none; background: transparent; cursor: pointer;
+  color: var(--text-soft);
+  width: 2rem; height: 2rem; border-radius: 50%;
+  display: grid; place-content: center;
+  transition: color .15s ease, background .15s ease;
+}
+.cart-del:hover { color: var(--danger); background: rgba(220,38,38,.08); }
+.cart-del .material-symbols-outlined { font-size: 1.15rem; }
 .cart-total {
   display: flex; justify-content: space-between;
   padding: .9rem 0;
@@ -349,6 +377,185 @@ body {
 }
 .btn-primary:hover:not(:disabled) { background: #c2410c; }
 .btn-primary:disabled { opacity: .45; cursor: not-allowed; }
+
+.btn-ghost {
+  border: 1px solid var(--panel-border);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text);
+  font: inherit; font-weight: 600;
+  padding: .9rem 1.4rem;
+  cursor: pointer;
+  transition: background .2s ease, border-color .2s ease, color .2s ease;
+}
+.btn-ghost:hover { background: #f5f5f4; }
+.btn-ghost.btn-danger { color: var(--danger); border-color: #fecaca; }
+.btn-ghost.btn-danger:hover { background: #fef2f2; }
+
+/* ---------------- LAYAR MASUK ---------------- */
+/* Placeholder saat localStorage belum terbaca — mencegah layar masuk berkelip
+   sesaat bagi pengunjung yang sesinya sudah ada. */
+.boot { min-height: 100vh; }
+
+.entry {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 1.5rem;
+}
+.entry-card {
+  width: min(24rem, 100%);
+  background: var(--panel-bg);
+  border: 1px solid var(--panel-border);
+  border-radius: 1.25rem;
+  padding: 2rem 1.75rem;
+  box-shadow: 0 20px 60px -30px rgba(124, 45, 18, .35);
+  display: flex; flex-direction: column; gap: 1rem;
+  text-align: center;
+  animation: fadeUp .35s ease backwards;
+}
+.entry-title { font-size: 1.4rem; font-weight: 700; }
+.entry-kicker { font-size: .87rem; color: var(--text-soft); line-height: 1.5; }
+.entry-foot { font-size: .75rem; color: var(--text-soft); line-height: 1.5; }
+
+.field { display: flex; flex-direction: column; gap: .35rem; text-align: left; }
+.field > span { font-size: .78rem; font-weight: 600; color: var(--text-soft); }
+.field input {
+  font: inherit;
+  padding: .8rem .9rem;
+  border: 1px solid var(--panel-border);
+  border-radius: .7rem;
+  background: #fff;
+  color: var(--text);
+  outline: none;
+  transition: border-color .2s ease, box-shadow .2s ease;
+}
+.field input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(249,115,22,.18);
+}
+.field-compact input { padding: .6rem .75rem; font-size: .9rem; }
+
+.field-error {
+  display: flex; align-items: flex-start; gap: .4rem;
+  text-align: left;
+  color: #b91c1c;
+  font-size: .8rem; line-height: 1.45;
+}
+.field-error .material-symbols-outlined { font-size: 1.05rem; flex-shrink: 0; }
+
+/* Langkah konfirmasi: nomornya sengaja SANGAT besar supaya bisa dibandingkan
+   sekilas dengan penanda fisik di meja (PRD §3.1.1 poin 1). */
+.confirm-num {
+  font-size: 5.5rem;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--accent-mid);
+  letter-spacing: -.02em;
+}
+.confirm-cap {
+  font-size: .75rem; font-weight: 600; color: var(--text-soft);
+  text-transform: uppercase; letter-spacing: .08em;
+}
+.confirm-name { font-size: .9rem; color: var(--text-soft); }
+.entry-actions { display: flex; gap: .6rem; }
+.entry-actions > * { flex: 1; }
+
+/* ---------------- POPOVER ITEM ---------------- */
+.pop-backdrop {
+  position: fixed; inset: 0; z-index: 40;
+  background: rgba(28, 25, 23, .35);
+  backdrop-filter: blur(2px);
+  animation: fadeIn .2s ease;
+}
+.pop {
+  position: fixed;
+  z-index: 41;
+  width: min(19rem, calc(100vw - 1.5rem));
+  background: var(--panel-bg);
+  border: 1px solid var(--panel-border);
+  border-radius: 1rem;
+  box-shadow: 0 24px 60px -20px rgba(0,0,0,.45);
+  padding: 1.1rem 1.1rem 1rem;
+  display: flex; flex-direction: column; gap: .8rem;
+  animation: popIn .22s cubic-bezier(.34,1.4,.6,1);
+}
+.pop-close {
+  position: absolute; top: .5rem; right: .5rem;
+  border: none; background: transparent; cursor: pointer;
+  color: var(--text-soft);
+  width: 2rem; height: 2rem; border-radius: 50%;
+  display: grid; place-content: center;
+}
+.pop-close:hover { background: #f5f5f4; }
+.pop-head { display: flex; align-items: center; gap: .7rem; padding-right: 1.5rem; }
+.pop-icon {
+  font-size: 1.9rem;
+  color: var(--accent-mid);
+  background: rgba(249,115,22,.1);
+  border-radius: 50%;
+  padding: .55rem;
+}
+.pop-head h3 { font-size: 1rem; font-weight: 700; }
+.pop-price { font-size: .9rem; font-weight: 600; color: var(--accent-mid); }
+.pop-desc { font-size: .83rem; color: var(--text-soft); line-height: 1.55; }
+
+.stepper {
+  display: flex; align-items: center; justify-content: center; gap: .5rem;
+  background: #fafaf9;
+  border: 1px solid var(--panel-border);
+  border-radius: 999px;
+  padding: .3rem;
+}
+.stepper button {
+  border: none; cursor: pointer;
+  width: 2.3rem; height: 2.3rem; border-radius: 50%;
+  background: #fff;
+  color: var(--accent-mid);
+  display: grid; place-content: center;
+  box-shadow: 0 1px 3px rgba(0,0,0,.12);
+  transition: background .15s ease, opacity .15s ease;
+}
+.stepper button:hover:not(:disabled) { background: rgba(249,115,22,.12); }
+.stepper button:disabled { opacity: .35; cursor: not-allowed; }
+.stepper-val { min-width: 2.5rem; text-align: center; font-weight: 700; font-size: 1.05rem; }
+
+.pop-actions { display: flex; gap: .5rem; }
+.pop-actions .btn-primary { flex: 1; padding: .8rem 1rem; font-size: .9rem; }
+.pop-actions .btn-ghost { padding: .8rem 1rem; font-size: .9rem; }
+
+@keyframes fadeIn { from { opacity: 0 } to { opacity: 1 } }
+@keyframes popIn {
+  from { opacity: 0; transform: translateY(8px) scale(.96); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* ---------------- MINI-BAR STICKY ---------------- */
+.minibar {
+  position: fixed;
+  bottom: 1rem; left: 50%;
+  transform: translateX(-50%);
+  z-index: 30;
+  width: min(28rem, calc(100vw - 1.5rem));
+  display: flex; align-items: center; justify-content: space-between; gap: .75rem;
+  background: #1c1917;
+  color: #fff;
+  padding: .6rem .7rem .6rem 1.1rem;
+  border-radius: 999px;
+  box-shadow: 0 16px 40px -12px rgba(0,0,0,.5);
+  font-size: .87rem;
+  animation: fadeUp .25s ease backwards;
+}
+.minibar button {
+  border: none; cursor: pointer;
+  background: var(--accent-mid);
+  color: #fff;
+  font: inherit; font-weight: 600; font-size: .82rem;
+  padding: .55rem 1rem;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+.minibar button:hover { background: #c2410c; }
 
 /* ---------------- SETUP NOTICE (env belum diisi) ---------------- */
 .setup {
@@ -384,11 +591,16 @@ body {
 .app[data-mode="kiosk"] { --radius: 15rem; --avatar: 6rem; --center: 11rem; }
 .app[data-mode="kiosk"] .node .icon { font-size: 2.4rem; }
 
+@media (max-width: 560px) {
+  .confirm-num { font-size: 4.5rem; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .node {
     animation: none !important;
     transition: opacity .2s ease !important;
   }
-  .badge, .checkout { animation: none !important; }
+  .badge, .checkout, .entry-card, .pop, .minibar { animation: none !important; }
   .dial { transition: none !important; transform: none !important; }
+  .pop-backdrop { animation: none !important; }
 }

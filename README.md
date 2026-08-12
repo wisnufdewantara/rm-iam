@@ -71,7 +71,7 @@ kamu ingin mulai dari nol, skemanya masih utuh di repo.
 ## Status pengerjaan
 
 - [x] **Fase 0** — scaffold, skema + seed, dial statis membaca kategori dari DB
-- [ ] **Fase 1** — layar masuk (nomor meja + nama), popover item, keranjang persist
+- [x] **Fase 1** — layar masuk (nomor meja + nama), popover item, keranjang persist
 - [ ] **Fase 2** — buat order, bayar mockup, halaman tunggu + TTL 12 jam
 - [ ] **Fase 3** — dapur (KDS) + Supabase Auth + RLS per peran
 - [ ] **Fase 4** — waiter: batalkan item/pesanan, tandai diantar

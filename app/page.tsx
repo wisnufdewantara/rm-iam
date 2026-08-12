@@ -1,12 +1,34 @@
-import Dial from "@/components/dial/Dial";
+import OrderFlow from "@/components/order/OrderFlow";
+import { getActiveMarkerNumbers } from "@/lib/markers";
 import { getMenu } from "@/lib/menu";
 import { getSettings } from "@/lib/settings";
 import { supabaseConfig } from "@/lib/supabase/server";
-import type { CategoryWithItems } from "@/lib/types";
+import type { CategoryWithItems, Settings } from "@/lib/types";
 
 // Menu harus selalu segar: superuser mengubahnya lewat dashboard tanpa deploy
 // (PRD uji 37). Karena itu jangan di-prerender.
 export const dynamic = "force-dynamic";
+
+type Loaded =
+  | { ok: true; settings: Settings; categories: CategoryWithItems[]; markers: string[] }
+  | { ok: false; message: string };
+
+// Pengambilan data dipisah dari JSX dengan sengaja: aturan
+// react-hooks/error-boundaries benar — JSX yang dibangun di dalam try/catch
+// TIDAK akan tertangkap catch-nya, karena React merendernya belakangan.
+// Jadi try/catch hanya membungkus await-nya, lalu hasilnya dipulangkan sebagai data.
+async function load(): Promise<Loaded> {
+  try {
+    const [settings, categories, markers] = await Promise.all([
+      getSettings(),
+      getMenu(),
+      getActiveMarkerNumbers(),
+    ]);
+    return { ok: true, settings, categories, markers };
+  } catch (e) {
+    return { ok: false, message: e instanceof Error ? e.message : String(e) };
+  }
+}
 
 export default async function Home() {
   if (!supabaseConfig().ready) {
@@ -27,13 +49,10 @@ NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=sb_publishable_...`}
     );
   }
 
-  let categories: CategoryWithItems[];
-  let settings;
-  try {
-    [settings, categories] = await Promise.all([getSettings(), getMenu()]);
-  } catch (e) {
+  const result = await load();
+
+  if (!result.ok) {
     // Kasus paling umum saat pertama kali jalan: skema belum dibuat.
-    // Tampilkan instruksi, jangan halaman error.
     return (
       <Setup title="Skema database belum dibuat">
         <p>
@@ -43,33 +62,29 @@ NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=sb_publishable_...`}
         <pre>{`supabase/migrations/0001_init.sql
 supabase/seed.sql`}</pre>
         <p style={{ fontSize: ".85em" }}>
-          Pesan asli: <code>{e instanceof Error ? e.message : String(e)}</code>
+          Pesan asli: <code>{result.message}</code>
+        </p>
+      </Setup>
+    );
+  }
+
+  if (result.categories.length === 0) {
+    return (
+      <Setup title="Belum ada kategori menu">
+        <p>
+          Jalankan <code>supabase/seed.sql</code> di SQL Editor Supabase, atau
+          tambahkan kategori dari dashboard superuser.
         </p>
       </Setup>
     );
   }
 
   return (
-    <div className="app" data-theme={settings.theme}>
-      <header className="topbar">
-        <span className="brand">{settings.brand_name}</span>
-        <span className="table-chip">
-          <span className="material-symbols-outlined" style={{ fontSize: "1rem" }}>
-            table_restaurant
-          </span>
-          {settings.table_number_label}: —
-        </span>
-      </header>
-
-      {categories.length === 0 ? (
-        <p className="cart-empty" style={{ margin: "3rem 1.25rem" }}>
-          Belum ada kategori menu. Jalankan <code>supabase/seed.sql</code> atau
-          tambahkan kategori dari dashboard superuser.
-        </p>
-      ) : (
-        <Dial categories={categories} settings={settings} tableNumber={null} />
-      )}
-    </div>
+    <OrderFlow
+      categories={result.categories}
+      settings={result.settings}
+      markers={result.markers}
+    />
   );
 }
 
