@@ -443,7 +443,8 @@ body {
 .boot { min-height: 100vh; }
 
 .entry {
-  min-height: 100vh;
+  /* dikurangi tinggi footer kredit supaya tidak memaksa scroll */
+  min-height: calc(100vh - 7rem);
   display: grid;
   place-items: center;
   padding: 1.5rem;
@@ -640,6 +641,25 @@ body {
   white-space: nowrap;
 }
 .minibar button:hover { background: #c2410c; }
+
+/* ---------------- KREDIT PEMBUAT ---------------- */
+.credit {
+  text-align: center;
+  padding: 1.75rem 1.25rem 2.25rem;
+  font-size: .72rem;
+  line-height: 1.7;
+  color: var(--text-soft);
+  border-top: 1px solid var(--panel-border);
+}
+.credit strong { font-weight: 600; color: var(--text); }
+.credit a { color: var(--accent-mid); text-decoration: none; }
+.credit a:hover { text-decoration: underline; }
+.credit-tech { margin-top: .35rem; opacity: .8; }
+
+/* Mini-bar melayang di bawah layar; beri ruang supaya tidak menutupi kredit.
+   Selectornya di body, bukan .app — Credit dirender di layout sebagai SIBLING
+   .app, jadi `.app:has(.minibar) .credit` tidak akan pernah cocok. */
+body:has(.minibar) .credit { padding-bottom: 5rem; }
 
 /* ---------------- SETUP NOTICE (env belum diisi) ---------------- */
 .setup {

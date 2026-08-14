@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
+import Credit from "@/components/Credit";
 import "@/styles/dial.css";
 
 // Inter di-host sendiri lewat next/font: tidak ada permintaan ke
@@ -42,6 +43,7 @@ export default function RootLayout({
           href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0&display=block"
         />
         {children}
+        <Credit />
       </body>
     </html>
   );

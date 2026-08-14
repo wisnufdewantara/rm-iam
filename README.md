@@ -68,6 +68,17 @@ kamu ingin mulai dari nol, skemanya masih utuh di repo.
   `middleware.ts` → `proxy.ts`, `next lint` dihapus, dan `eslint-config-next`
   sudah flat-config native (jangan dibungkus `FlatCompat`).
 
+## Kredit
+
+- Created by **Wisnu Dewantara** — wisnupriester@gmail.com
+- Assisted by **Kucing Oren** — iamgorange@gmail.com
+- Powered with **Claude Opus 5**
+
+© 2026 Wisnu Dewantara. Belum ada berkas LICENSE, jadi secara bawaan **seluruh
+hak dipertahankan** — orang lain tidak otomatis boleh memakai atau menjual ulang
+kode ini. Itu posisi yang tepat untuk sesuatu yang berencana dijual; tambahkan
+LICENSE hanya kalau memang ingin memberi izin tertentu.
+
 ## Status pengerjaan
 
 - [x] **Fase 0** — scaffold, skema + seed, dial statis membaca kategori dari DB
