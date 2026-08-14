@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { CategoryWithItems, MenuItem, Settings } from "@/lib/types";
-import { rupiah } from "@/lib/types";
+import { rupiah, shortItemLabel } from "@/lib/types";
 import type { Cart } from "@/lib/cart";
-import { qtyByCategory } from "@/lib/cart";
+import { linesForItem, qtyByCategory, qtyByItem } from "@/lib/cart";
 import ItemPopover, { type PopoverTarget } from "./ItemPopover";
 
 /*
@@ -17,7 +17,16 @@ import ItemPopover, { type PopoverTarget } from "./ItemPopover";
   tetap ter-mount di kedua level. Kategori aktif cuma berganti kelas jadi
   .is-center (yang men-set --radius: 0), kategori lain jadi .is-hidden.
   Elemennya sama, jadi transisi CSS pada transform/width yang menganimasikan.
-  Kalau di-remount, animasinya hilang dan harus FLIP manual.
+
+  PAGINASI CINCIN
+  Cincin punya 12 slot, mengikuti angka pada jam. Menu nyata bisa punya 18 item
+  dalam satu kategori, dan 18 lingkaran di satu cincin pasti tumpang-tindih:
+  keliling cincin (2πr) lebih kecil dari total diameter lingkarannya.
+
+  Kalau item melebihi 12, slot terakhir dipakai lingkaran NAVIGASI berwarna
+  beda yang memindahkan ke halaman berikutnya (dan berputar kembali ke halaman
+  1 di ujung). Saat memaginasi, --total dipaku ke 12 supaya posisi slot tidak
+  bergeser antar halaman — jam-nya tetap jam.
 */
 
 export default function Dial({
@@ -25,17 +34,20 @@ export default function Dial({
   settings,
   tableNumber,
   cart,
-  onSetItem,
-  onRemoveItem,
+  onAdd,
+  onSetQty,
+  onRemoveLine,
 }: {
   categories: CategoryWithItems[];
   settings: Settings;
   tableNumber: string | null;
   cart: Cart;
-  onSetItem: (id: string, qty: number, note: string) => void;
-  onRemoveItem: (id: string) => void;
+  onAdd: (itemId: string, qty: number, note: string) => void;
+  onSetQty: (lineId: string, qty: number) => void;
+  onRemoveLine: (lineId: string) => void;
 }) {
   const [activeCat, setActiveCat] = useState<string | null>(null);
+  const [page, setPage] = useState(0);
   const [popover, setPopover] = useState<PopoverTarget | null>(null);
 
   useEffect(() => {
@@ -51,13 +63,44 @@ export default function Dial({
     ? (categories.find((c) => c.id === activeCat) ?? null)
     : null;
 
-  // Jumlah anak cincin di level aktif — dipakai CSS untuk menyebar posisi.
-  const ringTotal = active ? Math.max(active.items.length, 1) : categories.length;
+  const slots = Math.min(Math.max(settings.dial_max_ring, 6), 12);
+
+  // Pembagian halaman cincin. Kalau perlu navigasi, satu slot dipakai tombolnya.
+  const paging = useMemo(() => {
+    const items = active?.items ?? [];
+    if (items.length <= slots) {
+      return { items, needsNav: false, pageCount: 1, total: items.length };
+    }
+    const perPage = slots - 1; // sisakan satu slot untuk lingkaran navigasi
+    const pageCount = Math.ceil(items.length / perPage);
+    const safePage = page % pageCount;
+    return {
+      items: items.slice(safePage * perPage, safePage * perPage + perPage),
+      needsNav: true,
+      pageCount,
+      // Dipaku ke jumlah slot supaya posisi tidak bergeser antar halaman.
+      total: slots,
+    };
+  }, [active, page, slots]);
+
+  const ringTotal = active
+    ? Math.max(paging.total, 1)
+    : Math.max(categories.length, 1);
+
   const catBadges = qtyByCategory(cart, categories);
+  const itemBadges = qtyByItem(cart);
+
+  function openCategory(id: string | null) {
+    setActiveCat(id);
+    setPage(0); // halaman selalu mulai dari awal saat kategori berganti
+  }
 
   function openItem(item: MenuItem, el: HTMLElement) {
     setPopover({ item, rect: el.getBoundingClientRect() });
   }
+
+  const presets = active?.note_presets ?? settings.note_presets;
+  const currentPage = paging.pageCount > 1 ? page % paging.pageCount : 0;
 
   return (
     <main className="stage">
@@ -69,7 +112,7 @@ export default function Dial({
           style={{ ["--i" as string]: 0 }}
           aria-hidden={active ? true : undefined}
           tabIndex={active ? -1 : 0}
-          onClick={() => setActiveCat(null)}
+          onClick={() => openCategory(null)}
           aria-label={`${settings.table_number_label} ${tableNumber ?? "belum diisi"}`}
         >
           <span className="table-num">{tableNumber ?? "—"}</span>
@@ -92,7 +135,7 @@ export default function Dial({
               aria-label={
                 isCenter ? `Tutup kategori ${cat.name}` : `Buka kategori ${cat.name}`
               }
-              onClick={() => setActiveCat(isCenter ? null : cat.id)}
+              onClick={() => openCategory(isCenter ? null : cat.id)}
             >
               <span className="material-symbols-outlined icon">{cat.icon_name}</span>
               <span className="node-label">{cat.name}</span>
@@ -102,35 +145,66 @@ export default function Dial({
           );
         })}
 
-        {/* ---- Item menu kategori aktif ---- */}
-        {active?.items.map((item, idx) => {
-          const qty = cart[item.id]?.qty ?? 0;
-          return (
-            <button
-              key={item.id}
-              type="button"
-              className="node"
-              style={{ ["--i" as string]: idx + 1 }}
-              aria-label={`${item.name}, ${rupiah(item.price)}${qty ? `, ${qty} di keranjang` : ""}`}
-              onClick={(e) => openItem(item, e.currentTarget)}
-            >
-              <span className="material-symbols-outlined icon">
-                {item.icon_name ?? "restaurant"}
-              </span>
-              <span className="node-label">{item.name}</span>
-              {qty > 0 ? <span className="badge">{qty}</span> : null}
-              <span className="tip">
-                {item.name} · {rupiah(item.price)}
-              </span>
-            </button>
-          );
-        })}
+        {/* ---- Item menu halaman aktif ---- */}
+        {active &&
+          paging.items.map((item, idx) => {
+            const qty = itemBadges.get(item.id) ?? 0;
+            return (
+              <button
+                key={item.id}
+                type="button"
+                className="node"
+                style={{ ["--i" as string]: idx + 1 }}
+                aria-label={`${item.name}, ${rupiah(item.price)}${qty ? `, ${qty} di keranjang` : ""}`}
+                onClick={(e) => openItem(item, e.currentTarget)}
+              >
+                <span className="material-symbols-outlined icon">
+                  {item.icon_name ?? "restaurant"}
+                </span>
+                {/* Label dipendekkan: kategorinya sudah tertulis di tengah.
+                    Nama utuh tetap ada di tooltip & popover. */}
+                <span className="node-label">
+                  {shortItemLabel(item.name, active.name)}
+                </span>
+                {qty > 0 ? <span className="badge">{qty}</span> : null}
+                <span className="tip">
+                  {item.name} · {rupiah(item.price)}
+                </span>
+              </button>
+            );
+          })}
+
+        {/* ---- Lingkaran navigasi: hanya kalau item > jumlah slot ---- */}
+        {active && paging.needsNav && (
+          <button
+            type="button"
+            className="node is-nav"
+            style={{ ["--i" as string]: slots }}
+            onClick={() => setPage((p) => (p + 1) % paging.pageCount)}
+            aria-label={`Halaman menu berikutnya, sekarang halaman ${currentPage + 1} dari ${paging.pageCount}`}
+          >
+            <span className="material-symbols-outlined icon">chevron_right</span>
+            <span className="node-label">
+              {currentPage + 1}/{paging.pageCount}
+            </span>
+            <span className="tip">Menu berikutnya</span>
+          </button>
+        )}
       </div>
 
       <p className="hint">
         {active ? (
           active.items.length ? (
-            <>Ketuk menu untuk memilih. Ketuk lingkaran tengah untuk kembali.</>
+            <>
+              Ketuk menu untuk memilih. Ketuk lingkaran tengah untuk kembali.
+              {paging.needsNav && (
+                <>
+                  {" "}
+                  Lingkaran <strong>{currentPage + 1}/{paging.pageCount}</strong> untuk
+                  menu berikutnya.
+                </>
+              )}
+            </>
           ) : (
             <>
               Kategori <strong>{active.name}</strong> belum ada menunya — bisa diisi
@@ -145,17 +219,12 @@ export default function Dial({
       {popover && (
         <ItemPopover
           target={popover}
-          currentQty={cart[popover.item.id]?.qty ?? 0}
-          currentNote={cart[popover.item.id]?.note ?? ""}
+          presets={presets}
+          existing={linesForItem(cart, popover.item.id)}
           onClose={() => setPopover(null)}
-          onSubmit={(qty, note) => {
-            onSetItem(popover.item.id, qty, note);
-            setPopover(null);
-          }}
-          onRemove={() => {
-            onRemoveItem(popover.item.id);
-            setPopover(null);
-          }}
+          onAdd={(qty, note) => onAdd(popover.item.id, qty, note)}
+          onSetQty={onSetQty}
+          onRemove={onRemoveLine}
         />
       )}
     </main>

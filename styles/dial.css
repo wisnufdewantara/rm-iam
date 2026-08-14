@@ -161,16 +161,20 @@ body {
 .node:focus-visible { box-shadow: 0 0 0 5px rgba(249, 115, 22, .55); }
 
 .node .icon { font-size: 1.75rem; }
+/* Dua baris: menu nyata punya nama seperti "Pete Ikan Asin" yang tidak muat
+   satu baris di lingkaran. Nama utuh tetap ada di tooltip & popover. */
 .node .node-label {
-  font-size: .62rem;
+  font-size: .6rem;
   font-weight: 600;
-  line-height: 1.1;
+  line-height: 1.15;
   margin-top: .15rem;
-  padding: 0 .25rem;
+  padding: 0 .2rem;
   max-width: 100%;
   overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow-wrap: anywhere;
 }
 
 /* ---- Lingkaran yang sedang di tengah ---- */
@@ -196,6 +200,26 @@ body {
     rotate(var(--r)) translate(var(--radius)) rotate(calc(-1 * var(--r)))
     scale(.2);
   animation-play-state: paused;
+}
+
+/* ---- Lingkaran navigasi halaman menu ----
+   Sengaja BEDA WARNA dari lingkaran menu: dia bukan makanan, dia tombol.
+   Kalau warnanya sama, pengunjung akan mengetuknya menyangka itu menu. */
+.node.is-nav {
+  color: #fff;
+  background: #44403c;
+  box-shadow: 0 0 0 4px rgba(68, 64, 60, .18);
+  animation-play-state: paused;
+}
+.node.is-nav:hover, .node.is-nav:focus-visible {
+  background: #292524;
+  box-shadow: 0 0 0 6px rgba(68, 64, 60, .28);
+}
+.node.is-nav .icon { font-size: 1.9rem; }
+.node.is-nav .node-label {
+  font-size: .58rem;
+  opacity: .9;
+  -webkit-line-clamp: 1;
 }
 
 /* ---- Lingkaran tengah level 0 (nomor meja) ---- */
@@ -309,7 +333,28 @@ body {
   flex: 1; font-size: .92rem;
   display: flex; flex-direction: column; gap: .15rem;
 }
-.cart-note { font-size: .75rem; color: var(--text-soft); font-style: italic; }
+/* Catatan bisa diedit langsung dari baris keranjang. Mengubahnya bisa
+   menggabungkan baris ini dengan varian lain yang catatannya sama — itu
+   perilaku yang diinginkan (lihat setLineNote di lib/cart.ts). */
+.cart-note-input {
+  border: none;
+  background: transparent;
+  font: inherit;
+  font-size: .75rem;
+  font-style: italic;
+  color: var(--text-soft);
+  padding: .1rem 0;
+  outline: none;
+  width: 100%;
+  border-bottom: 1px dashed transparent;
+}
+.cart-note-input:hover { border-bottom-color: var(--panel-border); }
+.cart-note-input:focus {
+  border-bottom-color: var(--accent);
+  font-style: normal;
+  color: var(--text);
+}
+.cart-note-input::placeholder { color: #a8a29e; }
 .cart-line .pr { font-weight: 600; white-space: nowrap; }
 
 /* stepper qty di dalam baris keranjang */
@@ -519,6 +564,45 @@ body {
 .stepper button:hover:not(:disabled) { background: rgba(249,115,22,.12); }
 .stepper button:disabled { opacity: .35; cursor: not-allowed; }
 .stepper-val { min-width: 2.5rem; text-align: center; font-weight: 700; font-size: 1.05rem; }
+
+/* ---- Varian yang sudah di keranjang (di dalam popover) ---- */
+.variants { display: flex; flex-direction: column; gap: .4rem; }
+.variants-cap {
+  font-size: .7rem; font-weight: 700; color: var(--text-soft);
+  text-transform: uppercase; letter-spacing: .05em;
+}
+.variant {
+  display: flex; align-items: center; gap: .5rem;
+  background: #fafaf9;
+  border: 1px solid var(--panel-border);
+  border-radius: .6rem;
+  padding: .35rem .4rem .35rem .6rem;
+}
+.variant-note {
+  flex: 1; font-size: .82rem; line-height: 1.3;
+  overflow-wrap: anywhere;
+}
+.variant-note em { color: var(--text-soft); font-style: italic; }
+.pop-sep { border: none; border-top: 1px solid var(--panel-border); margin: .1rem 0; }
+
+/* ---- Chip catatan cepat ---- */
+.chips { display: flex; flex-wrap: wrap; gap: .35rem; }
+.chip {
+  border: 1px solid var(--panel-border);
+  background: #fff;
+  color: var(--text-soft);
+  font: inherit; font-size: .76rem; font-weight: 600;
+  padding: .35rem .7rem;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background .15s ease, color .15s ease, border-color .15s ease;
+}
+.chip:hover { border-color: var(--accent); color: var(--accent-mid); }
+.chip.is-on {
+  background: var(--accent-mid);
+  border-color: var(--accent-mid);
+  color: #fff;
+}
 
 .pop-actions { display: flex; gap: .5rem; }
 .pop-actions .btn-primary { flex: 1; padding: .8rem 1rem; font-size: .9rem; }

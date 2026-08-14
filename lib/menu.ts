@@ -13,7 +13,7 @@ export async function getMenu(): Promise<CategoryWithItems[]> {
   const [cats, items] = await Promise.all([
     supabase
       .from("categories")
-      .select("id, slug, name, icon_name, color, position")
+      .select("id, slug, name, icon_name, color, position, note_presets")
       .eq("is_active", true)
       .order("position", { ascending: true }),
     supabase

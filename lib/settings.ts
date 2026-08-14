@@ -25,6 +25,9 @@ export const DEFAULT_SETTINGS: Settings = {
   same_table_warn_threshold: 3,
   guest_order_rate_limit_secs: 15,
   guest_paid_orders_per_hour: 10,
+  note_presets: ["Pedas", "Tidak pedas", "Sedikit garam", "Tanpa sambal"],
+  dial_max_ring: 12, // 12 slot, mengikuti angka pada jam
+
 };
 
 export async function getSettings(): Promise<Settings> {

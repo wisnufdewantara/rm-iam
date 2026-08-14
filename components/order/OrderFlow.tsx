@@ -6,9 +6,13 @@ import CheckoutSection from "./CheckoutSection";
 import EntryScreen from "./EntryScreen";
 import { STORAGE, useHydrated, usePersisted } from "@/lib/storage";
 import {
+  addToCart,
   cartLines,
   cartTotals,
   indexItems,
+  removeLine,
+  setLineNote,
+  setLineQty,
   type Cart,
   type Session,
 } from "@/lib/cart";
@@ -19,7 +23,7 @@ import type { CategoryWithItems, Settings } from "@/lib/types";
 
   Sesi (nomor meja + nama) dan keranjang keduanya bertahan di localStorage,
   jadi refresh atau layar HP yang mati tidak menghapus pesanan yang sedang
-  disusun (PRD Fase 1). Belum ada tulis ke DB sampai Fase 2.
+  disusun. Belum ada tulis ke DB sampai Fase 2.
 */
 
 // Referensi konstan: nilai awal store harus stabil antar render supaya
@@ -43,22 +47,15 @@ export default function OrderFlow({
   const lines = useMemo(() => cartLines(cart.value, index), [cart.value, index]);
   const totals = useMemo(() => cartTotals(lines), [lines]);
 
-  function setItem(id: string, qty: number, note: string) {
-    cart.setValue((c) => ({ ...c, [id]: { qty, note: note || undefined } }));
-  }
-
-  function changeQty(id: string, qty: number) {
-    if (qty <= 0) return removeItem(id);
-    cart.setValue((c) => ({ ...c, [id]: { ...c[id], qty } }));
-  }
-
-  function removeItem(id: string) {
-    cart.setValue((c) => {
-      const next = { ...c };
-      delete next[id];
-      return next;
-    });
-  }
+  // Semua operasi keranjang murni, ada di lib/cart.ts, dan dikunci per VARIAN
+  // (item + catatan) — bukan per item menu. Lihat komentar di lib/cart.ts.
+  const add = (itemId: string, qty: number, note: string) =>
+    cart.setValue((c) => addToCart(c, itemId, qty, note));
+  const setQty = (lineId: string, qty: number) =>
+    cart.setValue((c) => setLineQty(c, lineId, qty));
+  const remove = (lineId: string) => cart.setValue((c) => removeLine(c, lineId));
+  const setNote = (lineId: string, note: string) =>
+    cart.setValue((c) => setLineNote(c, lineId, note));
 
   // Tunggu localStorage terbaca sebelum memutuskan layar mana yang tampil.
   // Tanpa ini, pengunjung yang sudah punya sesi akan melihat layar masuk
@@ -109,8 +106,9 @@ export default function OrderFlow({
         settings={settings}
         tableNumber={session.value.tableNumber}
         cart={cart.value}
-        onSetItem={setItem}
-        onRemoveItem={removeItem}
+        onAdd={add}
+        onSetQty={setQty}
+        onRemoveLine={remove}
       />
 
       <CheckoutSection
@@ -118,8 +116,9 @@ export default function OrderFlow({
         totalQty={totals.qty}
         totalRp={totals.rupiah}
         settings={settings}
-        onChangeQty={changeQty}
-        onRemove={removeItem}
+        onChangeQty={setQty}
+        onRemove={remove}
+        onChangeNote={setNote}
       />
     </div>
   );

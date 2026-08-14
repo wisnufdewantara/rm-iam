@@ -21,13 +21,15 @@ export default function CheckoutSection({
   settings,
   onChangeQty,
   onRemove,
+  onChangeNote,
 }: {
   lines: CartLine[];
   totalQty: number;
   totalRp: number;
   settings: Settings;
-  onChangeQty: (id: string, qty: number) => void;
-  onRemove: (id: string) => void;
+  onChangeQty: (lineId: string, qty: number) => void;
+  onRemove: (lineId: string) => void;
+  onChangeNote: (lineId: string, note: string) => void;
 }) {
   const ref = useRef<HTMLElement>(null);
   const [offscreen, setOffscreen] = useState(false);
@@ -61,12 +63,15 @@ export default function CheckoutSection({
           </p>
         ) : (
           <>
+            {/* Satu baris = satu VARIAN. Item yang sama dengan catatan berbeda
+                muncul sebagai baris terpisah, jadi dapur tidak perlu menafsirkan
+                "3 nasi goreng, yang 1 pedas". */}
             {lines.map((l) => (
-              <div className="cart-line" key={l.id}>
+              <div className="cart-line" key={l.lineId}>
                 <div className="cart-qty" role="group" aria-label={`Jumlah ${l.name}`}>
                   <button
                     type="button"
-                    onClick={() => onChangeQty(l.id, l.qty - 1)}
+                    onClick={() => onChangeQty(l.lineId, l.qty - 1)}
                     aria-label={`Kurangi ${l.name}`}
                   >
                     <span className="material-symbols-outlined">remove</span>
@@ -74,7 +79,7 @@ export default function CheckoutSection({
                   <span>{l.qty}</span>
                   <button
                     type="button"
-                    onClick={() => onChangeQty(l.id, l.qty + 1)}
+                    onClick={() => onChangeQty(l.lineId, l.qty + 1)}
                     aria-label={`Tambah ${l.name}`}
                   >
                     <span className="material-symbols-outlined">add</span>
@@ -83,7 +88,14 @@ export default function CheckoutSection({
 
                 <div className="nm">
                   {l.name}
-                  {l.note && <span className="cart-note">{l.note}</span>}
+                  <input
+                    className="cart-note-input"
+                    value={l.note}
+                    onChange={(e) => onChangeNote(l.lineId, e.target.value)}
+                    placeholder="tambah catatan…"
+                    maxLength={80}
+                    aria-label={`Catatan untuk ${l.name}`}
+                  />
                 </div>
 
                 <span className="pr">{rupiah(l.lineTotal)}</span>
@@ -91,7 +103,7 @@ export default function CheckoutSection({
                 <button
                   type="button"
                   className="cart-del"
-                  onClick={() => onRemove(l.id)}
+                  onClick={() => onRemove(l.lineId)}
                   aria-label={`Hapus ${l.name}`}
                 >
                   <span className="material-symbols-outlined">delete</span>

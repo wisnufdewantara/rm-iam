@@ -3,6 +3,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { MenuItem } from "@/lib/types";
 import { rupiah } from "@/lib/types";
+import type { CartLine } from "@/lib/cart";
 
 /*
   Popover detail item, menempel pada lingkaran yang diketuk (PRD §4.1).
@@ -10,30 +11,36 @@ import { rupiah } from "@/lib/types";
   Lingkaran ada di dalam cincin ber-transform, jadi posisinya tidak bisa dihitung
   dari layout statis. Kita ambil getBoundingClientRect() dari tombol yang diketuk
   lalu pasang popover dengan position: fixed, dijepit ke dalam viewport.
+
+  Popover ini SELALU bertindak "tambah varian", tidak pernah "ubah yang sudah
+  ada". Itu yang memungkinkan 1 nasi goreng pedas + 1 nasi goreng tidak pedas
+  jadi dua baris terpisah. Varian yang sudah masuk keranjang ditampilkan di
+  bawah, masing-masing dengan qty dan tombol hapusnya sendiri.
 */
 
 export type PopoverTarget = { item: MenuItem; rect: DOMRect };
 
 export default function ItemPopover({
   target,
-  currentQty,
-  currentNote,
+  presets,
+  existing,
   onClose,
-  onSubmit,
+  onAdd,
+  onSetQty,
   onRemove,
 }: {
   target: PopoverTarget;
-  currentQty: number;
-  currentNote: string;
+  presets: string[];
+  existing: CartLine[];
   onClose: () => void;
-  onSubmit: (qty: number, note: string) => void;
-  onRemove: () => void;
+  onAdd: (qty: number, note: string) => void;
+  onSetQty: (lineId: string, qty: number) => void;
+  onRemove: (lineId: string) => void;
 }) {
   const { item, rect } = target;
-  const inCart = currentQty > 0;
 
-  const [qty, setQty] = useState(inCart ? currentQty : 1);
-  const [note, setNote] = useState(currentNote);
+  const [qty, setQty] = useState(1);
+  const [note, setNote] = useState("");
   const [pos, setPos] = useState<{ left: number; top: number } | null>(null);
   const boxRef = useRef<HTMLDivElement>(null);
 
@@ -54,7 +61,7 @@ export default function ItemPopover({
       top = Math.max(pad, rect.top - h - 10);
     }
     setPos({ left, top });
-  }, [rect]);
+  }, [rect, existing.length]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -63,6 +70,25 @@ export default function ItemPopover({
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
   }, [onClose]);
+
+  function togglePreset(p: string) {
+    // Preset bersifat menumpuk: "Pedas" + "Tanpa bawang" itu wajar.
+    const parts = note
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean);
+    const at = parts.findIndex((s) => s.toLowerCase() === p.toLowerCase());
+    if (at >= 0) parts.splice(at, 1);
+    else parts.push(p);
+    setNote(parts.join(", "));
+  }
+
+  const activePresets = new Set(
+    note
+      .split(",")
+      .map((s) => s.trim().toLowerCase())
+      .filter(Boolean)
+  );
 
   return (
     <>
@@ -90,12 +116,57 @@ export default function ItemPopover({
             {item.icon_name ?? "restaurant"}
           </span>
           <div>
+            {/* Nama UTUH di sini — lingkaran cuma menampilkan versi pendeknya */}
             <h3>{item.name}</h3>
             <p className="pop-price">{rupiah(item.price)}</p>
           </div>
         </div>
 
         {item.description && <p className="pop-desc">{item.description}</p>}
+
+        {/* Varian yang sudah di keranjang */}
+        {existing.length > 0 && (
+          <div className="variants">
+            <p className="variants-cap">Sudah di keranjang</p>
+            {existing.map((line) => (
+              <div className="variant" key={line.lineId}>
+                <span className="variant-note">
+                  {line.note || <em>tanpa catatan</em>}
+                </span>
+                <div className="cart-qty" role="group" aria-label={`Jumlah ${line.note || "tanpa catatan"}`}>
+                  <button
+                    type="button"
+                    onClick={() => onSetQty(line.lineId, line.qty - 1)}
+                    aria-label="Kurangi"
+                  >
+                    <span className="material-symbols-outlined">remove</span>
+                  </button>
+                  <span>{line.qty}</span>
+                  <button
+                    type="button"
+                    onClick={() => onSetQty(line.lineId, line.qty + 1)}
+                    aria-label="Tambah"
+                  >
+                    <span className="material-symbols-outlined">add</span>
+                  </button>
+                </div>
+                <button
+                  type="button"
+                  className="cart-del"
+                  onClick={() => onRemove(line.lineId)}
+                  aria-label="Hapus varian"
+                >
+                  <span className="material-symbols-outlined">delete</span>
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+
+        <hr className="pop-sep" />
+        <p className="variants-cap">
+          {existing.length > 0 ? "Tambah varian lain" : "Tambah ke keranjang"}
+        </p>
 
         <div className="stepper" role="group" aria-label="Jumlah">
           <button
@@ -119,8 +190,26 @@ export default function ItemPopover({
           </button>
         </div>
 
+        {/* Catatan cepat: mengetik di HP lambat, di kiosk lebih lambat lagi.
+            Isinya dari DB (kategori → settings), bukan hardcoded. */}
+        {presets.length > 0 && (
+          <div className="chips">
+            {presets.map((p) => (
+              <button
+                key={p}
+                type="button"
+                className={`chip ${activePresets.has(p.toLowerCase()) ? "is-on" : ""}`}
+                onClick={() => togglePreset(p)}
+                aria-pressed={activePresets.has(p.toLowerCase())}
+              >
+                {p}
+              </button>
+            ))}
+          </div>
+        )}
+
         <label className="field field-compact">
-          <span>Catatan (opsional)</span>
+          <span>Catatan</span>
           <input
             value={note}
             onChange={(e) => setNote(e.target.value)}
@@ -130,17 +219,19 @@ export default function ItemPopover({
         </label>
 
         <div className="pop-actions">
-          {inCart && (
-            <button type="button" className="btn-ghost btn-danger" onClick={onRemove}>
-              Hapus
-            </button>
-          )}
           <button
             type="button"
             className="btn-primary"
-            onClick={() => onSubmit(qty, note.trim())}
+            onClick={() => {
+              onAdd(qty, note.trim());
+              // Reset supaya varian berikutnya bisa langsung ditambah tanpa
+              // menutup popover — alur yang persis dibutuhkan untuk
+              // "1 pedas, 1 tidak pedas".
+              setQty(1);
+              setNote("");
+            }}
           >
-            {inCart ? "Perbarui" : `Tambah · ${rupiah(item.price * qty)}`}
+            Tambah · {rupiah(item.price * qty)}
           </button>
         </div>
       </div>
