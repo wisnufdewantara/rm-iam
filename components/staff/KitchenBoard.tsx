@@ -4,6 +4,7 @@ import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { createBrowserSupabase } from "@/lib/supabase/client";
 import { advanceOrderAction } from "@/lib/kitchenActions";
+import { useHydrated } from "@/lib/storage";
 import { siblingCount, type KitchenOrder } from "@/lib/kitchenTypes";
 
 /*
@@ -21,11 +22,28 @@ const COLUMNS = [
   { key: "done" as const, title: "Selesai", icon: "check_circle" },
 ];
 
+/*
+  Umur pesanan.
+
+  Di bawah satu jam pakai mm:ss — itu rentang yang benar-benar dipakai dapur
+  untuk menilai "sudah lama belum". Lewat satu jam, mm:ss jadi tidak terbaca
+  ("400:15" itu 6 jam 40 menit, dan tidak ada yang membaca angka itu sebagai
+  waktu), jadi ganti ke jam+menit.
+*/
 function ageLabel(iso: string): string {
   const secs = Math.max(0, Math.floor((Date.now() - new Date(iso).getTime()) / 1000));
-  const m = Math.floor(secs / 60);
-  const s = secs % 60;
-  return `${m}:${String(s).padStart(2, "0")}`;
+  if (secs < 3600) {
+    return `${Math.floor(secs / 60)}:${String(secs % 60).padStart(2, "0")}`;
+  }
+  const h = Math.floor(secs / 3600);
+  const m = Math.floor((secs % 3600) / 60);
+  return `${h}j ${m}m`;
+}
+
+/** Patokan waktu yang berarti per kolom: yang menunggu itu tamu (sejak dibuat),
+ *  sedangkan di kolom Selesai yang penting berapa lama makanan sudah tergeletak. */
+function ageSource(o: KitchenOrder): string {
+  return o.status === "done" ? (o.completed_at ?? o.created_at) : o.created_at;
 }
 
 export default function KitchenBoard({ orders }: { orders: KitchenOrder[] }) {
@@ -34,6 +52,11 @@ export default function KitchenBoard({ orders }: { orders: KitchenOrder[] }) {
   const [error, setError] = useState<string | null>(null);
   const [grouped, setGrouped] = useState(false);
   const [, setTick] = useState(0);
+
+  // Umur baru dirender SETELAH hydration. Komponen ini tetap di-SSR, dan
+  // Date.now() di server berbeda dengan di browser — selisih itu memicu
+  // hydration mismatch (yang muncul sebagai "Issues" di overlay dev Next).
+  const hydrated = useHydrated();
 
   // Umur pesanan harus terus berjalan tanpa memuat ulang data.
   useEffect(() => {
@@ -113,7 +136,9 @@ export default function KitchenBoard({ orders }: { orders: KitchenOrder[] }) {
                       <article className="kds-card" key={o.id}>
                         <header>
                           <strong>{o.order_number}</strong>
-                          <span className="kds-age">{ageLabel(o.created_at)}</span>
+                          <span className="kds-age">
+                            {hydrated ? ageLabel(ageSource(o)) : "—"}
+                          </span>
                         </header>
 
                         <p className="kds-table">
