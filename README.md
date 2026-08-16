@@ -83,6 +83,7 @@ LICENSE hanya kalau memang ingin memberi izin tertentu.
 
 - [x] **Fase 0** — scaffold, skema + seed, dial statis membaca kategori dari DB
 - [x] **Fase 1** — layar masuk (nomor meja + nama), popover item, keranjang persist
+- [x] **Perbaikan** — varian per catatan (1 pedas + 1 tidak pedas), cincin 12 slot + lingkaran navigasi, menu asli 66 item
 - [ ] **Fase 2** — buat order, bayar mockup, halaman tunggu + TTL 12 jam
 - [ ] **Fase 3** — dapur (KDS) + Supabase Auth + RLS per peran
 - [ ] **Fase 4** — waiter: batalkan item/pesanan, tandai diantar

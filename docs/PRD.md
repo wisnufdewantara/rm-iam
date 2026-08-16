@@ -289,6 +289,27 @@ Cincin dial itu **navigasi berjenjang**, bukan sekadar hiasan:
 - Tap lingkaran item → popover kecil menempel di lingkaran itu: nama, harga, deskripsi, stepper `− qty +`, kolom catatan opsional, tombol *Tambah*.
 - Badge angka (pojok kanan atas lingkaran): jumlah qty item tersebut, atau di lingkaran kategori = jumlah qty semua item kategori itu. Badge 0 disembunyikan.
 
+#### 4.1.1 Varian: satu item, beberapa catatan
+
+Keranjang dikunci per **varian**, bukan per item menu. Kuncinya `${menu_item_id}|${catatan}`:
+
+- item sama + catatan **sama** → qty digabung (tambah 2× "pedas" jadi qty 2)
+- item sama + catatan **beda** → **dua baris terpisah**
+
+Ini bukan fitur tambahan, ini koreksi cacat. Versi pertama memakai `menu_item_id` sebagai kunci, sehingga satu item hanya bisa punya satu catatan. Pengunjung yang mau 1 nasi goreng pedas **dan** 1 tidak pedas tidak punya jalan selain menulis *"3 nasi goreng, yang 1 pedas"* di satu kolom catatan — yang berarti **dapur harus menafsirkan teks bebas**, dan itu sumber kesalahan pesanan yang nyata di lapangan.
+
+Tabel `order_items` sudah benar sejak awal: satu baris per varian dengan kolom `note` sendiri. Jadi perbaikannya hanya di bentuk keranjang klien, bukan skema. Efek bagusnya untuk Fase 3: dapur menerima **baris terstruktur**, bukan kalimat yang harus dibaca.
+
+Perilaku popover yang mengikuti dari ini:
+
+- Popover **selalu bertindak "tambah varian"**, tidak pernah "ubah yang sudah ada".
+- Setelah *Tambah*, popover **tetap terbuka** dan qty/catatan di-reset — jadi "1 pedas lalu 1 tidak pedas" cukup dua ketukan tanpa menutup apa pun.
+- Varian yang sudah masuk keranjang tampil di bagian atas popover, masing-masing dengan stepper qty dan tombol hapusnya sendiri.
+- Badge di lingkaran item = **jumlah semua varian** item itu.
+- Catatan bisa diedit langsung dari baris keranjang. Kalau hasil editnya sama dengan varian lain, dua baris itu **digabung** — bukan menyisakan duplikat.
+
+**Catatan cepat (chips).** Mengetik catatan di HP lambat, di kiosk lebih lambat lagi. Jadi ada chip preset yang bisa ditumpuk (`Pedas, Tanpa bawang`). Isinya dari DB **per kategori**, bukan hardcoded dan bukan per item: "Pedas" masuk akal untuk Nasi Goreng dan tidak untuk Juice, sementara per item berarti mengisi 66 baris — per kategori cuma 7. Fallback-nya `settings.note_presets`.
+
 **Kenapa cincin bertingkat, bukan daftar menu di dalam lingkaran tengah?** Teks di dalam area yang di-clip `border-radius: 50%` terpotong di kiri-kanan dan boros ruang — jelek terutama di layar HP. Cincin bertingkat mempertahankan bahasa visual "bulat-bulat" untuk *seluruh* alur, memberi target sentuh besar yang pas untuk kiosk, dan popover-lah yang membawa detail teks. Lingkaran tengah tetap jadi konteks aktif + tombol "kembali".
 
 ### 4.2 Kunci implementasi (jangan sampai salah arah)
@@ -299,6 +320,18 @@ Port `styles/dial.css` dari wisnu-cms, dengan dua perubahan:
 2. **`--total` harus reaktif** ke jumlah anak cincin di level aktif (jumlah kategori vs jumlah item), diset sebagai inline CSS var di elemen `.dial`.
 
 Sisanya diwarisi: animasi `spread` bertahap per indeks, `bob` mengapung (di-pause saat terpilih), `photoIn` untuk tengah, tooltip `.tip`, parallax 3D mouse (nonaktif di kiosk/touch), dan blok `prefers-reduced-motion` yang mematikan semua animasi.
+
+#### Paginasi cincin: 12 slot + lingkaran navigasi
+
+Cincin punya **12 slot, mengikuti angka pada jam**. Batas ini bukan selera: keliling cincin `2πr` lebih kecil dari total diameter lingkarannya begitu jumlahnya lewat belasan, jadi 18 item **pasti** bertumpuk. Pada `--radius: 12rem` dan `--avatar: 4.5rem`, kelilingnya ±75rem sementara 18 lingkaran butuh ±81rem.
+
+- **≤ 12 item** → semua tampil, `--total` = jumlah item (menyebar rata; 4 item tetap enak dilihat)
+- **> 12 item** → 11 item + **1 lingkaran navigasi** di slot ke-12, dan `--total` **dipaku ke 12** supaya posisi slot tidak bergeser antar halaman. Jam-nya tetap jam.
+- Lingkaran navigasi memutar halaman, dan di halaman terakhir kembali ke halaman 1.
+- **Warnanya wajib beda** dari lingkaran menu (abu gelap, bukan aksen). Dia tombol, bukan makanan — kalau warnanya sama, pengunjung akan mengetuknya menyangka itu menu.
+- Batasnya `settings.dial_max_ring` (default 12, dibatasi 6–12), jadi kiosk berlayar kecil bisa diturunkan tanpa deploy.
+
+**Label item dipendekkan.** Lingkaran hanya selebar ±4.5rem, sementara menu nyata punya "Nasi Goreng Pete Ikan Asin". Karena lingkaran tengah **sudah** menampilkan nama kategorinya, awalan yang mengulang kategori dibuang: di kategori "Nasi Goreng", item itu tampil sebagai **"Pete Ikan Asin"** dalam dua baris. Nama utuh tetap ada di tooltip dan di popover, jadi tidak ada informasi yang hilang.
 
 ### 4.3 Tata letak halaman user
 
@@ -439,6 +472,9 @@ create table categories (
   color       text,                                -- override aksen lingkaran
   position    int  not null,                       -- urutan di cincin dial
   is_active   boolean not null default true,
+  -- ditambahkan di 0002: catatan cepat khusus kategori ini (§4.1.1).
+  -- null = pakai settings.note_presets.
+  note_presets jsonb,
   created_at  timestamptz not null default now(),
   updated_at  timestamptz not null default now()
 );
@@ -548,6 +584,12 @@ create table settings (
   -- pengaman penyalahgunaan (bukan aturan UX) — angkanya jauh di atas perilaku wajar
   guest_order_rate_limit_secs  int not null default 15,
   guest_paid_orders_per_hour   int not null default 10,
+
+  -- ditambahkan di 0002_note_presets.sql
+  note_presets  jsonb not null default
+    '["Pedas","Tidak pedas","Sedikit garam","Tanpa sambal","Tanpa bawang"]'::jsonb,
+  dial_max_ring int not null default 12 check (dial_max_ring between 6 and 12),
+
   updated_at   timestamptz not null default now()
 );
 insert into settings (id) values (1) on conflict do nothing;
@@ -845,19 +887,24 @@ Middleware: `/waiter`, `/dapur`, `/admin`, `/laporan` wajib sesi + peran; salah 
 
 ## 9. Menu awal (seed)
 
-Harga placeholder, semuanya bisa diubah superuser.
+Seed memakai **menu sungguhan** dari papan menu "Nasi Goreng Malang": **66 item di 7 kategori**. Ini keputusan yang disengaja, bukan kebetulan — 5 item mainan menyembunyikan masalah yang baru muncul pada beban nyata, dan justru dari 66 item inilah dua kebutuhan berikut terungkap:
 
-| Kategori | Ikon | Item | Harga |
+- Satu kategori bisa punya **18 item**, dan 18 lingkaran tidak muat di satu cincin → cincin harus dipaginasi (§4.2).
+- Nama seperti "Nasi Goreng Pete Ikan Asin" tidak muat di lingkaran → label harus dipendekkan (§4.2).
+
+| Kategori | Ikon | Jumlah item | Rentang harga |
 |---|---|---|---|
-| Makanan | `ramen_dining` | Nasi Goreng | 15.000 |
-| | | Mie Goreng | 15.000 |
-| Minuman | `local_cafe` | Es Teh | 5.000 |
-| | | Air Mineral | 5.000 |
-| Cemilan | `lunch_dining` | Fried Fries | 12.000 |
-| Paket Hemat | `redeem` | *(kosong — diisi superuser)* | |
-| Tambahan | `add_circle` | *(kosong — diisi superuser)* | |
+| Nasi Goreng | `rice_bowl` | 18 | 13.000 – 20.000 |
+| Mie | `ramen_dining` | 10 | 14.000 – 20.000 |
+| Chinese Food | `set_meal` | 11 | 18.000 – 28.000 |
+| Minuman Dingin | `local_bar` | 13 | 3.000 – 10.000 |
+| Juice | `blender` | 7 | 8.000 |
+| Minuman Panas | `local_cafe` | 4 | 3.000 – 5.000 |
+| Tambahan | `egg` | 3 | 1.000 – 3.000 |
 
-Dua kategori kosong sengaja ada: membuktikan cincin dial dan dashboard superuser benar-benar data-driven, bukan hardcoded.
+Semua harga & nama bisa diubah superuser tanpa deploy. Daftar lengkapnya di `supabase/seed.sql`.
+
+**Seed MENGGANTI seluruh menu**, bukan menambah — kalau ditumpuk, harga lama dan baru bertabrakan (Es Teh 5.000 vs 4.000). Pengamannya: seed menolak jalan kalau tabel `orders` sudah ada isinya, karena berarti itu bukan database kosong lagi.
 
 ---
 
@@ -949,6 +996,20 @@ Kalau waktu mepet: Fase 0–4 sudah cerita utuh untuk tes kerja. Fase 5 bisa dip
 37. Mengganti seluruh menu, kategori, warna aksen, dan nama brand lewat dashboard → tidak ada satu pun deploy atau perubahan kode.
 38. Menjalankan `supabase/migrations/*.sql` berurutan di project Supabase kosong → skema lengkap dan aplikasi langsung jalan.
 
+**Varian & paginasi cincin (§4.1.1, §4.2)** — semuanya sudah diverifikasi lewat CDP
+
+39. Item sama dengan catatan **berbeda** ("Pedas" dan "Tidak pedas") → **dua baris terpisah** di keranjang, masing-masing dengan catatannya.
+40. Item sama dengan catatan **sama** ditambah lagi → qty digabung, **tidak** muncul baris ketiga.
+41. Badge di lingkaran item = jumlah semua variannya (2 + 1 = 3), dan total ikut benar.
+42. Setelah refresh, varian tetap terpisah — bukan tergabung jadi satu baris.
+43. Chip catatan cepat berasal dari DB per kategori: Nasi Goreng memuat "Pedas", Juice **tidak** memuat "Pedas" tapi memuat "Tanpa gula".
+44. Kategori 18 item → `--total` = 12, 11 item tampil, ada lingkaran navigasi berlabel `1/2`.
+45. Warna lingkaran navigasi **berbeda** dari lingkaran menu (dibandingkan lewat `getComputedStyle`).
+46. Klik navigasi → halaman `2/2` berisi 7 item sisanya, dan `--total` **tetap** 12 (posisi slot tidak bergeser).
+47. Klik navigasi di halaman terakhir → berputar balik ke `1/2`.
+48. Kategori ≤ 12 item (Juice, 7) → **tanpa** lingkaran navigasi, `--total` = 7.
+49. Label item dipendekkan: "Nasi Goreng Ayam" tampil sebagai "Ayam", sementara popover tetap memakai nama utuh.
+
 ---
 
 ## 12. Risiko
@@ -956,7 +1017,8 @@ Kalau waktu mepet: Fase 0–4 sudah cerita utuh untuk tes kerja. Fase 5 bisa dip
 | Risiko | Dampak | Penanganan |
 |---|---|---|
 | Supabase free auto-pause 7 hari | **Risiko terbesar proyek ini** — porto mati diam-diam, dan yang menemukannya adalah reviewer | GitHub Action harian (gratis) + dicatat di README; Fase 6 |
-| Cincin penuh saat kategori/item banyak | Lingkaran bertumpuk | Batasi cincin 12; lebih dari itu pakai lingkaran "Lainnya" (halaman kedua). Pengaman: `--radius` menyesuaikan `--total`. |
+| ~~Cincin penuh saat kategori/item banyak~~ | ~~Lingkaran bertumpuk~~ | **Sudah dipecahkan** (§4.2): 12 slot + lingkaran navigasi di slot ke-12, label dipendekkan. Terbukti pada menu 18 item. |
+| Keranjang dikunci per item, bukan per varian | Pengunjung tidak bisa memesan 1 pedas + 1 tidak pedas; dapur harus menafsirkan teks bebas | **Sudah dipecahkan** (§4.1.1): kunci `${itemId}\|${catatan}`. Uji 39–43. |
 | Circular layout di layar sangat kecil (≤360px) | Terpotong | Breakpoint `--radius`/`--avatar` seperti wisnu-cms; uji di 360×640 |
 | Animasi berat di tablet kiosk murah | Terasa lambat | Batasi animasi ke `transform`/`opacity`, `will-change` hemat, matikan parallax di touch |
 | Next 16 beda dari yang diingat | Waktu terbuang | Baca `node_modules/next/dist/docs/` sebelum menulis kode (aturan `AGENTS.md` di wisnu-cms juga berlaku di sini) |
@@ -1001,6 +1063,8 @@ Karena RM-IAM ditujukan untuk dijual, aturannya: **apa pun yang bisa berbeda ant
 | **Cara identifikasi meja** | `settings.identity_mode` | §3.1.2 — ini yang paling bervariasi |
 | Label "Nomor Meja" | `settings.table_number_label` | Jadi "Nomor Antrean" di kedai takeaway |
 | Nomor penanda meja & jenisnya | `table_markers` | Jumlah dan penomoran penanda milik mereka |
+| Catatan cepat (chips) | `categories.note_presets`, fallback `settings.note_presets` | Menu beda butuh catatan beda; "Pedas" untuk nasi goreng, "Tanpa es" untuk juice |
+| Jumlah slot cincin | `settings.dial_max_ring` (6–12) | Ukuran layar kiosk mereka beda-beda |
 | Ambang peringatan duplikat & meja padat | `settings` | Ramai vs sepi butuh angka beda |
 | Rate limit | `settings` | — |
 | TTL halaman pesanan (12 jam) | `settings.order_ttl_hours` | Jam operasional beda; ada yang 24 jam |

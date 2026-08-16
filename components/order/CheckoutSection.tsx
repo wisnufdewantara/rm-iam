@@ -124,19 +124,19 @@ export default function CheckoutSection({
           </>
         )}
 
-        <button
-          type="button"
-          className="btn-primary"
-          disabled
-          title="Menyusul di Fase 2"
-        >
+        {/* Pembayaran belum dibangun. Penjelasannya ditulis TERLIHAT, bukan
+            lewat atribut `title`: tooltip tidak pernah muncul di layar sentuh,
+            jadi di HP dan kiosk pengunjung hanya akan dapat tombol mati tanpa
+            keterangan apa pun. Teksnya juga untuk pengunjung, bukan jargon
+            internal seperti "Fase 2". */}
+        <button type="button" className="btn-primary" disabled>
           Lanjut Pembayaran
         </button>
-        {!empty && (
-          <p className="entry-foot">
-            Anda masih bisa mengubah pesanan sampai pembayaran dilakukan.
-          </p>
-        )}
+        <p className="entry-foot">
+          {empty
+            ? "Pilih menu dulu untuk melanjutkan."
+            : "Pembayaran belum tersedia pada demo ini. Anda masih bisa mengubah pesanan."}
+        </p>
       </section>
 
       {/* Mini-bar sticky */}
