@@ -518,31 +518,48 @@ body {
   position: fixed;
   z-index: 41;
   width: min(19rem, calc(100vw - 1.5rem));
+  max-height: calc(100vh - 1.5rem);
+  overflow-y: auto;
   background: var(--panel-bg);
   border: 1px solid var(--panel-border);
   border-radius: 1rem;
   box-shadow: 0 24px 60px -20px rgba(0,0,0,.45);
-  padding: 1.1rem 1.1rem 1rem;
-  display: flex; flex-direction: column; gap: .8rem;
   animation: popIn .22s cubic-bezier(.34,1.4,.6,1);
+}
+
+/* Kepala dialog: foto/ikon MENYATU dengan kotaknya — menempel ke tepi,
+   bukan ikon kecil di samping judul. */
+.pop-media {
+  position: relative;
+  height: 7.5rem;
+  border-radius: 1rem 1rem 0 0;
+  overflow: hidden;
+  background: linear-gradient(135deg, rgba(249,115,22,.16), rgba(249,115,22,.06));
+  display: grid; place-items: center;
+}
+.pop-media img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.pop-media > .material-symbols-outlined {
+  font-size: 3.6rem;
+  color: var(--accent-mid);
+  opacity: .9;
+}
+.pop-body {
+  padding: .9rem 1.1rem 1rem;
+  display: flex; flex-direction: column; gap: .8rem;
 }
 .pop-close {
   position: absolute; top: .5rem; right: .5rem;
-  border: none; background: transparent; cursor: pointer;
-  color: var(--text-soft);
+  border: none; cursor: pointer;
+  background: rgba(255,255,255,.85);
+  color: #44403c;
   width: 2rem; height: 2rem; border-radius: 50%;
   display: grid; place-content: center;
+  box-shadow: 0 2px 8px -2px rgba(0,0,0,.3);
+  backdrop-filter: blur(4px);
 }
-.pop-close:hover { background: #f5f5f4; }
-.pop-head { display: flex; align-items: center; gap: .7rem; padding-right: 1.5rem; }
-.pop-icon {
-  font-size: 1.9rem;
-  color: var(--accent-mid);
-  background: rgba(249,115,22,.1);
-  border-radius: 50%;
-  padding: .55rem;
-}
-.pop-head h3 { font-size: 1rem; font-weight: 700; }
+.pop-close:hover { background: #fff; }
+.pop-head { display: flex; flex-direction: column; gap: .15rem; }
+.pop-head h3 { font-size: 1.05rem; font-weight: 700; line-height: 1.3; }
 .pop-price { font-size: .9rem; font-weight: 600; color: var(--accent-mid); }
 .pop-desc { font-size: .83rem; color: var(--text-soft); line-height: 1.55; }
 
@@ -641,6 +658,186 @@ body {
   white-space: nowrap;
 }
 .minibar button:hover { background: #c2410c; }
+
+/* ---------------- PERINGATAN LUNAK ---------------- */
+/* Peringatan, BUKAN penolakan: tombol lanjutnya ada di dalam kotak ini. */
+.warn {
+  display: flex; gap: .6rem;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  color: #1e3a8a;
+  padding: .85rem .9rem;
+  border-radius: .8rem;
+  font-size: .84rem;
+  line-height: 1.55;
+  margin-bottom: .75rem;
+}
+.warn .material-symbols-outlined { font-size: 1.15rem; flex-shrink: 0; }
+.warn-go {
+  margin-top: .5rem;
+  border: none; background: transparent;
+  color: #1d4ed8;
+  font: inherit; font-size: .84rem; font-weight: 700;
+  text-decoration: underline;
+  cursor: pointer; padding: 0;
+}
+.notice-danger { background: #fef2f2; border-color: #fecaca; color: #991b1b; }
+
+/* ---------------- HALAMAN BAYAR ---------------- */
+.pay { width: min(26rem, 100%); margin: 0 auto; padding: 1.5rem 1.25rem; }
+.mock-banner {
+  display: flex; align-items: center; justify-content: center; gap: .4rem;
+  background: #fef3c7; border: 1px dashed #f59e0b; color: #92400e;
+  font-size: .75rem; font-weight: 700;
+  padding: .5rem; border-radius: .6rem; margin-bottom: 1rem;
+  text-transform: uppercase; letter-spacing: .04em;
+}
+.mock-banner .material-symbols-outlined { font-size: 1.05rem; }
+.pay-card {
+  background: var(--panel-bg);
+  border: 1px solid var(--panel-border);
+  border-radius: 1.1rem;
+  padding: 1.5rem 1.25rem;
+  box-shadow: 0 20px 60px -30px rgba(124, 45, 18, .3);
+  display: flex; flex-direction: column; gap: .8rem;
+}
+.pay-cap {
+  text-align: center; font-size: .7rem; font-weight: 700; color: var(--text-soft);
+  text-transform: uppercase; letter-spacing: .08em;
+}
+.pay-number {
+  text-align: center; font-size: 2.2rem; font-weight: 700;
+  color: var(--accent-mid); letter-spacing: -.01em; line-height: 1;
+}
+.pay-meta { text-align: center; font-size: .85rem; color: var(--text-soft); }
+.pay-items { list-style: none; display: flex; flex-direction: column; gap: .5rem; }
+.pay-items li { display: flex; align-items: baseline; gap: .6rem; font-size: .88rem; }
+.pay-items .q { color: var(--accent-mid); font-weight: 700; min-width: 1.8rem; }
+.pay-items .n { flex: 1; display: flex; flex-direction: column; }
+.pay-items .n em { font-size: .75rem; color: var(--text-soft); font-style: italic; }
+.pay-items .p { font-weight: 600; white-space: nowrap; }
+.pay-items li.is-cancelled { opacity: .5; text-decoration: line-through; }
+.pay-back { display: block; text-align: center; text-decoration: none; }
+
+/* ---------------- HALAMAN TUNGGU ---------------- */
+.wait {
+  width: min(26rem, 100%); margin: 0 auto;
+  padding: 2rem 1.25rem 1rem;
+  display: flex; flex-direction: column; align-items: center; gap: .55rem;
+}
+
+/* Dial mini berputar; berhenti dan jadi centang saat selesai */
+.waitdial { position: relative; width: 9rem; height: 9rem; margin-bottom: .75rem; }
+.waitdial-ring {
+  position: absolute; inset: 0;
+  animation: spin 3.5s linear infinite;
+}
+.waitdial-ring span {
+  position: absolute; top: 50%; left: 50%;
+  width: .7rem; height: .7rem; margin: -.35rem;
+  border-radius: 50%;
+  background: var(--accent);
+  transform: rotate(calc(60deg * var(--n, 0))) translate(4rem);
+  opacity: .35;
+}
+.waitdial-ring span:nth-child(1) { --n: 0; opacity: 1; }
+.waitdial-ring span:nth-child(2) { --n: 1; opacity: .8; }
+.waitdial-ring span:nth-child(3) { --n: 2; opacity: .6; }
+.waitdial-ring span:nth-child(4) { --n: 3; opacity: .45; }
+.waitdial-ring span:nth-child(5) { --n: 4; opacity: .3; }
+.waitdial-ring span:nth-child(6) { --n: 5; opacity: .2; }
+.waitdial-core {
+  position: absolute; inset: 1.6rem;
+  border-radius: 50%;
+  background: var(--accent-mid);
+  color: #fff;
+  display: grid; place-content: center;
+  box-shadow: 0 12px 34px -14px rgba(124, 45, 18, .6);
+  transition: background .4s ease;
+}
+.waitdial-core .material-symbols-outlined { font-size: 2.6rem; }
+.waitdial-num { font-size: 1.9rem; font-weight: 700; }
+.waitdial.is-done .waitdial-ring { animation: none; }
+.waitdial.is-done .waitdial-ring span { background: #16a34a; opacity: 1; }
+.waitdial.is-done .waitdial-core { background: #16a34a; }
+.waitdial.is-cancel .waitdial-ring { animation: none; }
+.waitdial.is-cancel .waitdial-ring span { background: #dc2626; opacity: .5; }
+.waitdial.is-cancel .waitdial-core { background: #dc2626; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.wait-cap {
+  font-size: .7rem; font-weight: 700; color: var(--text-soft);
+  text-transform: uppercase; letter-spacing: .08em;
+}
+.wait-number {
+  font-size: 2.6rem; font-weight: 700; line-height: 1;
+  color: var(--accent-mid); letter-spacing: -.02em;
+}
+.wait-meta { font-size: .85rem; color: var(--text-soft); }
+.wait-queue { font-size: .9rem; font-weight: 600; color: var(--accent-mid); }
+.wait-ready { font-size: 1rem; font-weight: 700; color: #16a34a; }
+
+.steps {
+  list-style: none; display: flex; gap: .5rem;
+  margin: 1rem 0 .25rem;
+}
+.steps li {
+  display: flex; align-items: center; gap: .35rem;
+  font-size: .78rem; color: var(--text-soft);
+}
+.steps li + li::before {
+  content: ""; width: 1.2rem; height: 1px;
+  background: var(--panel-border); margin-right: .35rem;
+}
+.steps .dot {
+  width: .6rem; height: .6rem; border-radius: 50%;
+  background: var(--panel-border);
+}
+.steps li.is-past { color: var(--text); }
+.steps li.is-past .dot { background: #16a34a; }
+.steps li.is-now { color: var(--accent-mid); font-weight: 700; }
+.steps li.is-now .dot {
+  background: var(--accent-mid);
+  box-shadow: 0 0 0 4px rgba(249, 115, 22, .22);
+}
+
+.wait-items { width: 100%; margin-top: 1rem; }
+.wait-total { width: 100%; }
+.wait-actions { display: flex; gap: .6rem; width: 100%; margin-top: .5rem; }
+.wait-actions > * { flex: 1; text-align: center; text-decoration: none; }
+
+/* ---------------- PESANAN SAYA ---------------- */
+.mylist {
+  width: min(26rem, 100%); margin: 0 auto;
+  padding: 2rem 1.25rem;
+  display: flex; flex-direction: column; gap: 1rem;
+}
+.mylist-items { list-style: none; display: flex; flex-direction: column; gap: .6rem; }
+.mylist-items a {
+  display: flex; flex-direction: column; gap: .3rem;
+  padding: .85rem 1rem;
+  border: 1px solid var(--panel-border);
+  border-radius: .8rem;
+  text-decoration: none; color: var(--text);
+  transition: border-color .2s ease;
+}
+.mylist-items a:hover { border-color: var(--accent); }
+.mylist-items a > div:first-child {
+  display: flex; align-items: center; justify-content: space-between; gap: .5rem;
+}
+.mylist-meta { font-size: .8rem; color: var(--text-soft); }
+.pill {
+  font-size: .68rem; font-weight: 700; padding: .2rem .55rem; border-radius: 999px;
+  background: #f5f5f4; color: var(--text-soft);
+}
+.pill-paid   { background: #ffedd5; color: #9a3412; }
+.pill-queued { background: #dbeafe; color: #1e40af; }
+.pill-done   { background: #dcfce7; color: #166534; }
+.pill-cancelled { background: #fee2e2; color: #991b1b; }
+
+@media (prefers-reduced-motion: reduce) {
+  .waitdial-ring { animation: none !important; }
+}
 
 /* ---------------- KREDIT PEMBUAT ---------------- */
 .credit {

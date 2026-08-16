@@ -1,7 +1,9 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import type { CartLine } from "@/lib/cart";
+import { useRouter } from "next/navigation";
+import { useEffect, useRef, useState, useTransition } from "react";
+import type { CartLine, Session } from "@/lib/cart";
+import { createOrderAction } from "@/lib/orders";
 import { rupiah } from "@/lib/types";
 import type { Settings } from "@/lib/types";
 
@@ -22,6 +24,8 @@ export default function CheckoutSection({
   onChangeQty,
   onRemove,
   onChangeNote,
+  session,
+  onOrdered,
 }: {
   lines: CartLine[];
   totalQty: number;
@@ -30,9 +34,49 @@ export default function CheckoutSection({
   onChangeQty: (lineId: string, qty: number) => void;
   onRemove: (lineId: string) => void;
   onChangeNote: (lineId: string, note: string) => void;
+  session: Session;
+  onOrdered: () => void;
 }) {
   const ref = useRef<HTMLElement>(null);
+  const router = useRouter();
   const [offscreen, setOffscreen] = useState(false);
+  const [pending, start] = useTransition();
+  const [warning, setWarning] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [sent, setSent] = useState(false);
+
+  // `sent` menahan tombol setelah berhasil sampai navigasi selesai — tanpa itu,
+  // ketukan kedua pada koneksi lambat membuat dua pesanan (PRD uji 3).
+  const busy = pending || sent;
+
+  function submit(confirm: boolean) {
+    setError(null);
+    setWarning(null);
+    start(async () => {
+      const res = await createOrderAction({
+        tableNumber: session.tableNumber,
+        customerName: session.customerName,
+        items: lines.map((l) => ({
+          menu_item_id: l.itemId,
+          qty: l.qty,
+          note: l.note,
+        })),
+        confirm,
+      });
+
+      if (res.ok) {
+        setSent(true);
+        onOrdered(); // kosongkan keranjang; pesanannya sudah ada di DB
+        router.push(`/bayar/${res.orderNumber}`);
+        return;
+      }
+      if ("needsConfirm" in res && res.needsConfirm) {
+        setWarning(res.detail);
+        return;
+      }
+      setError(res.error);
+    });
+  }
 
   useEffect(() => {
     const el = ref.current;
@@ -124,18 +168,39 @@ export default function CheckoutSection({
           </>
         )}
 
-        {/* Pembayaran belum dibangun. Penjelasannya ditulis TERLIHAT, bukan
-            lewat atribut `title`: tooltip tidak pernah muncul di layar sentuh,
-            jadi di HP dan kiosk pengunjung hanya akan dapat tombol mati tanpa
-            keterangan apa pun. Teksnya juga untuk pengunjung, bukan jargon
-            internal seperti "Fase 2". */}
-        <button type="button" className="btn-primary" disabled>
-          Lanjut Pembayaran
+        {/* Peringatan lunak dari server (duplikat / meja padat). Sesuai PRD
+            §3.1.1 ini PERINGATAN, bukan penolakan — tombol lanjutnya tetap ada. */}
+        {warning && (
+          <div className="warn" role="alert">
+            <span className="material-symbols-outlined">help</span>
+            <div>
+              <p>{warning}</p>
+              <button type="button" className="warn-go" onClick={() => submit(true)}>
+                Ya, tetap buat pesanan baru
+              </button>
+            </div>
+          </div>
+        )}
+
+        {error && (
+          <p className="field-error" role="alert">
+            <span className="material-symbols-outlined">error</span>
+            {error}
+          </p>
+        )}
+
+        <button
+          type="button"
+          className="btn-primary"
+          disabled={empty || busy}
+          onClick={() => submit(false)}
+        >
+          {busy ? "Membuat pesanan…" : "Lanjut Pembayaran"}
         </button>
         <p className="entry-foot">
           {empty
             ? "Pilih menu dulu untuk melanjutkan."
-            : "Pembayaran belum tersedia pada demo ini. Anda masih bisa mengubah pesanan."}
+            : "Anda masih bisa mengubah pesanan sampai pembayaran dilakukan."}
         </p>
       </section>
 

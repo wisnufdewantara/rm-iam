@@ -119,6 +119,8 @@ export default function OrderFlow({
         onChangeQty={setQty}
         onRemove={remove}
         onChangeNote={setNote}
+        session={session.value}
+        onOrdered={() => cart.clear()}
       />
     </div>
   );
