@@ -81,7 +81,16 @@ kamu ingin mulai dari nol, skemanya masih utuh di repo.
   `SUPABASE_URL` dan `SUPABASE_PUBLISHABLE_KEY` — publishable key, bukan secret key.
   Harus di tingkat **repository**; kalau ditaruh di dalam sebuah *Environment*,
   nilainya tidak terbaca kecuali job-nya menyatakan `environment:`.
-  Setelah diisi, tes lewat tab **Actions → Keep Supabase awake → Run workflow**.
+  Setelah diisi, tes lewat tab **Actions → Keep Supabase awake → Run workflow**,
+  atau dari terminal: `gh workflow run keep-supabase-awake.yml --ref master`.
+
+  **Ada jalur kedua yang berdiri sendiri:** `vercel.json` menjadwalkan
+  `/api/cron/keep-awake` sekali sehari (Vercel Hobby mengizinkan 1 cron/hari).
+  Dua jalur karena GitHub Actions bisa mati di luar kendali proyek — akun
+  terkunci soal tagihan, kuota habis, atau Actions dimatikan di level
+  organisasi. Kalau satu-satunya penjaga ikut mati, demonya mati diam-diam.
+  Opsional: isi env `CRON_SECRET` di Vercel supaya endpoint itu hanya bisa
+  dipanggil oleh cron-nya sendiri.
 - **Pembayaran masih mockup** — belum ada Xendit, tidak ada transaksi nyata.
 - Next 16 punya beberapa perubahan yang mudah terlewat: Turbopack sudah default,
   `middleware.ts` → `proxy.ts`, `next lint` dihapus, dan `eslint-config-next`
