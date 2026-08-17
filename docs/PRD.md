@@ -818,6 +818,16 @@ Semua staf (waiter, kitchen, superuser) boleh membaca laporan — itu arti langs
 
 Transisi status juga dikunci trigger `BEFORE UPDATE` di `orders` yang menolak kombinasi `OLD.status → NEW.status` di luar tabel §3.4, jadi bug di UI tidak bisa merusak data.
 
+**Aturan peran ada di trigger, bukan di policy — dan itu bukan pilihan gaya.** Policy RLS bisa membatasi *siapa* yang menulis, tapi tidak bisa membatasi *ke status mana* dengan tepat: `WITH CHECK` hanya melihat baris hasil dan **tidak tahu status sebelumnya**. Akibatnya, dengan policy saja, waiter tetap bisa memajukan pesanan ke `queued` — pekerjaan dapur. Trigger transisi tahu `OLD` dan `NEW` sekaligus, jadi di sanalah aturan peran ditegakkan (0005):
+
+| Ke status | Boleh oleh |
+|---|---|
+| `paid` | pengunjung lewat RPC (`current_staff_role()` null) atau superuser |
+| `queued`, `done` | kitchen, superuser |
+| `cancelled` | **waiter, superuser** — inilah aturan "pembatalan hanya lewat waiter" (§2) dalam bentuk yang tidak bisa dilewati |
+
+Konsekuensinya penting untuk dinilai: menyembunyikan tombol di UI bukan penjaganya. Memanggil REST API langsung sebagai dapur untuk membatalkan tetap ditolak `42501` (uji 39).
+
 ### Akses pengunjung ke pesanannya
 
 - Saat order dibuat, server menaruh cookie `httpOnly` `rmiam_guest=<guest_token>` dan menyimpan daftar nomor pesanan di `localStorage` (untuk "Pesanan saya").
@@ -996,6 +1006,19 @@ Kalau waktu mepet: Fase 0–4 sudah cerita utuh untuk tes kerja. Fase 5 bisa dip
 37. Mengganti seluruh menu, kategori, warna aksen, dan nama brand lewat dashboard → tidak ada satu pun deploy atau perubahan kode.
 38. Menjalankan `supabase/migrations/*.sql` berurutan di project Supabase kosong → skema lengkap dan aplikasi langsung jalan.
 
+**Peran & siklus hidup pesanan (0003 & 0005)** — diuji langsung lewat REST API sebagai staf, bukan lewat tombol
+
+39. Dapur mencoba membatalkan → **ditolak** `42501`, dengan pesan bahwa pembatalan hanya lewat waiter.
+40. Waiter mencoba mengantre → **ditolak**; itu pekerjaan dapur.
+41. Dapur boleh `paid → queued → done`; waiter boleh `paid/queued → cancelled`.
+42. Transisi terminal (`done → queued`) ditolak sebagai transisi tidak sah.
+43. Membatalkan satu item → total dihitung ulang **oleh trigger**, tercoret di layar dapur & waiter, dan halaman tunggu tamu ikut berubah tanpa refresh.
+44. Pembatalan pesanan **wajib beralasan**: tombolnya terkunci sampai alasan diisi, dan alasannya sampai ke halaman tunggu tamu.
+45. Setiap perpindahan tercatat di `order_events` beserta pelakunya: `guest/create` → `system/pay` → `waiter/cancel_item` → `waiter/cancel_order`.
+46. Pesanan `cancelled` ikut terarsip; item yang dibatalkan ber-`line_total` 0 dan tidak masuk `menu_sales`.
+47. Klik di layar dapur → halaman tunggu tamu berubah dalam ≤5 detik **tanpa refresh manual** (diuji dengan dua tab sungguhan).
+48. `/dapur` tanpa sesi dialihkan ke `/masuk`; peran yang salah dialihkan ke dashboard-nya sendiri, bukan 403 buntu.
+
 **Varian & paginasi cincin (§4.1.1, §4.2)** — semuanya sudah diverifikasi lewat CDP
 
 39. Item sama dengan catatan **berbeda** ("Pedas" dan "Tidak pedas") → **dua baris terpisah** di keranjang, masing-masing dengan catatannya.
@@ -1023,6 +1046,8 @@ Kalau waktu mepet: Fase 0–4 sudah cerita utuh untuk tes kerja. Fase 5 bisa dip
 | Animasi berat di tablet kiosk murah | Terasa lambat | Batasi animasi ke `transform`/`opacity`, `will-change` hemat, matikan parallax di touch |
 | Next 16 beda dari yang diingat | Waktu terbuang | Baca `node_modules/next/dist/docs/` sebelum menulis kode (aturan `AGENTS.md` di wisnu-cms juga berlaku di sini) |
 | Kebocoran RLS karena buru-buru | Nilai jelek di poin keamanan | Tulis policy bersamaan dengan fiturnya, dan uji poin 6, 7, 31, 32 secara eksplisit |
+| **Aturan peran hanya ditaruh di policy RLS** | Waiter tetap bisa memajukan pesanan ke `queued`: `WITH CHECK` cuma melihat baris hasil, **tidak tahu status lama**, jadi transisi tidak bisa dibatasi dari sana | **Sudah dipecahkan** (0005): aturan peran pindah ke trigger transisi yang tahu `OLD` dan `NEW`. Uji 50–55 memanggil REST API langsung sebagai staf, bukan lewat tombol. |
+| Hydration mismatch dari `Date.now()` di komponen yang di-SSR | Muncul sebagai "Issues" di overlay dev, dan teks bisa berkedip saat hydration | Nilai yang bergantung waktu baru dirender setelah `useHydrated()`. Sudah terjadi sekali di umur pesanan layar dapur. |
 | **Penanda dipakai ulang → dua pesanan berbeda di nomor yang sama** | Makanan sampai ke orang yang salah di meja yang benar | Nama pemesan sejajar nomor meja di dapur & waiter (§3.1.2 poin 4), peringatan meja padat, dan siklus hidup penanda di v2. Uji 24. |
 | `table_number` diperlakukan sebagai angka | `TA-3` / `A1` pecah, padahal penanda takeaway itu kebutuhan nyata | Tipe `text` di DB dan di seluruh tipe TypeScript. Uji 23 memakai nomor non-numerik dari ujung ke ujung. |
 | Nilai spesifik pelanggan ter-hardcode "karena cuma demo" | Software tidak bisa dijual ke pelanggan kedua tanpa ngoprek kode | §14 sebagai daftar periksa + uji 36 & 37 (grep + ganti semuanya lewat dashboard) |
