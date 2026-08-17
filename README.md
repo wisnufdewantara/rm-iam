@@ -75,8 +75,13 @@ kamu ingin mulai dari nol, skemanya masih utuh di repo.
   untuk demo/porto: matinya diam-diam, dan yang menemukan pertama bisa jadi orang
   yang sedang menilai. Mitigasinya ada di
   [`.github/workflows/keep-supabase-awake.yml`](.github/workflows/keep-supabase-awake.yml)
-  — satu query per hari. Isi dua secret repo di **Settings → Secrets → Actions**:
-  `SUPABASE_URL` dan `SUPABASE_PUBLISHABLE_KEY` (publishable, bukan secret key).
+  — satu query per hari. Isi dua nilai di **Settings → Secrets and variables →
+  Actions**, pakai tombol **New repository secret** *atau* **New repository
+  variable** (workflow-nya membaca dua-duanya):
+  `SUPABASE_URL` dan `SUPABASE_PUBLISHABLE_KEY` — publishable key, bukan secret key.
+  Harus di tingkat **repository**; kalau ditaruh di dalam sebuah *Environment*,
+  nilainya tidak terbaca kecuali job-nya menyatakan `environment:`.
+  Setelah diisi, tes lewat tab **Actions → Keep Supabase awake → Run workflow**.
 - **Pembayaran masih mockup** — belum ada Xendit, tidak ada transaksi nyata.
 - Next 16 punya beberapa perubahan yang mudah terlewat: Turbopack sudah default,
   `middleware.ts` → `proxy.ts`, `next lint` dihapus, dan `eslint-config-next`
