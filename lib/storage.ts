@@ -158,5 +158,5 @@ export function useHydrated(): boolean {
 export const STORAGE = {
   session: "rmiam.session",
   cart: "rmiam.cart",
-  myOrders: "rmiam.myOrders",
+  theme: "rmiam.theme",
 } as const;

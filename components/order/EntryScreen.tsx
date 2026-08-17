@@ -3,6 +3,7 @@
 import { useState } from "react";
 import type { Session } from "@/lib/cart";
 import type { Settings } from "@/lib/types";
+import Numpad from "./Numpad";
 
 /*
   Layar masuk (PRD §3.1.2).
@@ -21,10 +22,12 @@ import type { Settings } from "@/lib/types";
 export default function EntryScreen({
   settings,
   markers,
+  kiosk,
   onDone,
 }: {
   settings: Settings;
   markers: string[]; // nomor penanda aktif
+  kiosk?: boolean;
   onDone: (s: Session) => void;
 }) {
   const [table, setTable] = useState("");
@@ -110,11 +113,25 @@ export default function EntryScreen({
             // menerima teks: ada penanda "TA-3" untuk bungkus.
             inputMode="numeric"
             autoComplete="off"
-            autoFocus
+            autoFocus={!kiosk}
+            readOnly={kiosk}
             placeholder="12"
             maxLength={8}
           />
         </label>
+
+        {/* Di kiosk, angka diketuk di layar — keyboard OS sering dimatikan
+            atau menutupi setengah layar pada tablet yang dipasang permanen. */}
+        {kiosk && (
+          <Numpad
+            value={table}
+            onChange={(v) => {
+              setTable(v);
+              setError(null);
+            }}
+            allowPrefix
+          />
+        )}
 
         {settings.ask_customer_name && (
           <label className="field">

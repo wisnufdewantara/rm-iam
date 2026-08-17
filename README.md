@@ -28,7 +28,15 @@ Secret key **tidak dibutuhkan** dan sengaja tidak dipakai — lihat PRD §7.1.
 Lalu di Supabase → **SQL Editor**, jalankan berurutan:
 
 1. `supabase/migrations/0001_init.sql` — skema, RLS, fungsi nomor pesanan
-2. `supabase/seed.sql` — kategori & menu contoh (opsional, tapi perlu untuk demo)
+2. `supabase/migrations/0002_note_presets.sql` — catatan cepat + slot cincin
+3. `supabase/migrations/0003_orders_lifecycle.sql` — RPC pesanan, trigger, `pg_cron`
+4. `supabase/migrations/0004_sales_archive.sql` — arsip penjualan permanen
+5. `supabase/migrations/0005_role_transitions.sql` — aturan peran + Realtime
+6. `supabase/seed.sql` — menu contoh (66 item) — perlu untuk demo
+7. Buat 3 user di **Authentication → Users** (centang *Auto Confirm*):
+   `dapur@demo.local`, `waiter@demo.local`, `admin@demo.local`
+8. `supabase/seed_staff.sql` — daftarkan ketiganya sebagai staf (cocok lewat
+   email, jadi tidak perlu menyalin UUID)
 
 ```bash
 npm run dev        # http://localhost:3000
@@ -46,6 +54,9 @@ dijalankan — tidak akan menampilkan halaman error yang membingungkan.
 | `npm run lint` | ESLint (`next lint` sudah dihapus di Next 16) |
 | `npx tsc --noEmit` | Typecheck |
 
+Jangan menjalankan `npm run build` sambil `npm run dev` masih hidup — keduanya
+memakai folder `.next/` yang sama dan hasilnya bisa saling mengacaukan.
+
 ## Migrasi database
 
 SQL disimpan sebagai file bernomor di `supabase/migrations/`. Aturannya:
@@ -61,12 +72,67 @@ kamu ingin mulai dari nol, skemanya masih utuh di repo.
 ## Catatan penting
 
 - **Supabase Free di-pause setelah ~7 hari tanpa aktivitas.** Ini risiko terbesar
-  untuk demo/porto: matinya diam-diam. Mitigasinya GitHub Action harian yang
-  menyentuh satu query (Fase 6).
+  untuk demo/porto: matinya diam-diam, dan yang menemukan pertama bisa jadi orang
+  yang sedang menilai. Mitigasinya ada di
+  [`.github/workflows/keep-supabase-awake.yml`](.github/workflows/keep-supabase-awake.yml)
+  — satu query per hari. Isi dua secret repo di **Settings → Secrets → Actions**:
+  `SUPABASE_URL` dan `SUPABASE_PUBLISHABLE_KEY` (publishable, bukan secret key).
 - **Pembayaran masih mockup** — belum ada Xendit, tidak ada transaksi nyata.
 - Next 16 punya beberapa perubahan yang mudah terlewat: Turbopack sudah default,
   `middleware.ts` → `proxy.ts`, `next lint` dihapus, dan `eslint-config-next`
   sudah flat-config native (jangan dibungkus `FlatCompat`).
+
+## Coba dalam 3 menit
+
+Akun demo (semua password sama, lihat catatan di bawah):
+
+| Email | Peran | Bisa apa |
+|---|---|---|
+| `dapur@demo.local` | kitchen | Antrekan & selesaikan pesanan |
+| `waiter@demo.local` | waiter | Batalkan item/pesanan, tandai diantar |
+| `admin@demo.local` | superuser | Semua + kelola menu & konfigurasi |
+
+Buka dua tab bersebelahan — bagian menariknya justru di antara keduanya.
+
+1. **Tab 1 (tamu)** — buka `/`. Masukkan nomor meja **12** dan nama Anda.
+   Nomor itu meniru penanda fisik yang dipegang tamu, jadi layar konfirmasinya
+   menampilkan angkanya besar-besar untuk dibandingkan.
+2. Ketuk **Nasi Goreng** — lingkarannya terbang ke tengah dan cincinnya berganti
+   jadi menu. Ada **18** nasi goreng, jadi satu slot dipakai lingkaran navigasi
+   berwarna beda; ketuk untuk halaman berikutnya.
+3. Ketuk **Ayam** → chip **Pedas** → *Tambah*. **Jangan tutup dialognya**: ketuk
+   **Tidak pedas** → *Tambah* lagi. Perhatikan keduanya jadi **dua baris
+   terpisah**, bukan satu baris qty 2 — dapur menerima varian terstruktur, bukan
+   kalimat yang harus ditafsirkan.
+4. Scroll lewat separator → **Lanjut Pembayaran** → **Bayar Sekarang**. Anda
+   masuk halaman tunggu. Biarkan tab ini terbuka.
+5. **Tab 2 (staf)** — buka `/masuk`, login sebagai `dapur@demo.local`. Pesanan
+   tadi ada di kolom **Masuk**. Klik **Antrekan**, lalu lihat **Tab 1**: dalam
+   ≤4 detik langkahnya pindah ke *Diantre* **tanpa refresh**. Klik **Selesai** →
+   Tab 1 jadi centang hijau.
+6. Keluar, login sebagai `waiter@demo.local` → **/waiter**. Batalkan satu item:
+   totalnya dihitung ulang di semua layar, termasuk halaman tunggu tamu.
+   Coba **Batalkan pesanan** — tombolnya terkunci sampai alasan diisi, dan
+   alasan itu sampai ke tamu.
+7. Login sebagai `admin@demo.local` → **/admin/menu**. Ubah harga apa pun →
+   refresh Tab 1: harga barunya sudah berubah, **tanpa deploy**. Lalu buka
+   **/laporan** — pesanan yang selesai dan dibatalkan sudah terekam.
+
+Yang layak diperiksa lebih dalam:
+
+- **Mode kiosk:** buka `/?mode=kiosk` — target sentuh lebih besar, papan angka
+  di layar, dan reset otomatis kalau ditinggalkan.
+- **Aturan peran ada di database, bukan di UI.** Menyembunyikan tombol bukan
+  penjaganya: memanggil REST API Supabase langsung sebagai dapur untuk
+  membatalkan pesanan tetap ditolak `42501`, dan sebagai waiter untuk
+  mengantrekan juga ditolak. Alasannya di [PRD §7](docs/PRD.md).
+- **Aplikasi tidak pernah memegang secret key.** Semua akses tamu lewat fungsi
+  Postgres `security definer`; kebocoran env var tidak berarti kebocoran
+  database.
+
+> Password akun demo ada di catatan terpisah, bukan di repo. Kalau Anda
+> menjalankan sendiri, buat akunnya di Supabase → Authentication → Users lalu
+> jalankan `supabase/seed_staff.sql`.
 
 ## Kredit
 
@@ -88,4 +154,4 @@ LICENSE hanya kalau memang ingin memberi izin tertentu.
 - [x] **Fase 3** — dapur (KDS) + Supabase Auth + RLS per peran
 - [x] **Fase 4** — waiter: batalkan item/pesanan, tandai diantar
 - [x] **Fase 5** — superuser: CRUD menu, konfigurasi dial, laporan
-- [ ] **Fase 6** — kiosk, dark mode, anti-pause, demo script
+- [x] **Fase 6** — kiosk, dark mode, anti-pause Supabase, demo script

@@ -25,6 +25,7 @@ export default function CheckoutSection({
   onRemove,
   onChangeNote,
   session,
+  kiosk,
   onOrdered,
 }: {
   lines: CartLine[];
@@ -35,6 +36,7 @@ export default function CheckoutSection({
   onRemove: (lineId: string) => void;
   onChangeNote: (lineId: string, note: string) => void;
   session: Session;
+  kiosk?: boolean;
   onOrdered: () => void;
 }) {
   const ref = useRef<HTMLElement>(null);
@@ -67,7 +69,9 @@ export default function CheckoutSection({
       if (res.ok) {
         setSent(true);
         onOrdered(); // kosongkan keranjang; pesanannya sudah ada di DB
-        router.push(`/bayar/${res.orderNumber}`);
+        // Bawa mode kiosk ke halaman berikutnya, kalau tidak target sentuhnya
+        // mengecil di tengah alur.
+        router.push(`/bayar/${res.orderNumber}${kiosk ? "?mode=kiosk" : ""}`);
         return;
       }
       if ("needsConfirm" in res && res.needsConfirm) {
