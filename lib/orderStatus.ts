@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/supabase/server";
+import { createAnonClient } from "@/lib/supabase/server";
 import { readGuestToken } from "@/lib/guest";
 
 export type OrderStatusValue =
@@ -33,7 +33,7 @@ export async function fetchOrderStatus(
   orderNumber: string
 ): Promise<OrderStatus | { found: false; expired?: boolean }> {
   const token = await readGuestToken();
-  const supabase = await createClient();
+  const supabase = createAnonClient();
 
   const { data, error } = await supabase.rpc("get_order_status", {
     p_order_number: orderNumber,
@@ -47,7 +47,7 @@ export async function fetchOrderStatus(
 export async function fetchMyOrders() {
   const token = await readGuestToken();
   if (!token) return [];
-  const supabase = await createClient();
+  const supabase = createAnonClient();
   const { data, error } = await supabase.rpc("list_my_orders", {
     p_guest_token: token,
   });

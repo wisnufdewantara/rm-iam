@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/supabase/server";
+import { createAnonClient } from "@/lib/supabase/server";
 import type { Category, CategoryWithItems, MenuItem } from "@/lib/types";
 
 // Baca kategori + item menu untuk dial.
@@ -8,7 +8,7 @@ import type { Category, CategoryWithItems, MenuItem } from "@/lib/types";
 // membuktikan cincinnya data-driven, bukan hardcoded.
 
 export async function getMenu(): Promise<CategoryWithItems[]> {
-  const supabase = await createClient();
+  const supabase = createAnonClient();
 
   const [cats, items] = await Promise.all([
     supabase

@@ -1,11 +1,11 @@
-import { createClient } from "@/lib/supabase/server";
+import { createAnonClient } from "@/lib/supabase/server";
 
 // Daftar nomor penanda meja yang aktif, untuk validasi di layar masuk.
 //
 // Hanya nomornya yang dikirim ke klien — tidak ada gunanya membocorkan id
 // atau label internal ke halaman publik.
 export async function getActiveMarkerNumbers(): Promise<string[]> {
-  const supabase = await createClient();
+  const supabase = createAnonClient();
   const { data, error } = await supabase
     .from("table_markers")
     .select("number")

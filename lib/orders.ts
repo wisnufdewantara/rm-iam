@@ -1,7 +1,7 @@
 "use server";
 
 import { z } from "zod";
-import { createClient } from "@/lib/supabase/server";
+import { createAnonClient } from "@/lib/supabase/server";
 import { ensureGuestToken, readGuestToken } from "@/lib/guest";
 
 /*
@@ -48,7 +48,7 @@ export async function createOrderAction(
   const input = parsed.data;
 
   const token = await ensureGuestToken();
-  const supabase = await createClient();
+  const supabase = createAnonClient();
 
   const { data, error } = await supabase.rpc("create_order", {
     p_table_number: input.tableNumber,
@@ -89,7 +89,7 @@ export async function payOrderAction(
   const token = await readGuestToken();
   if (!token) return { ok: false, error: "Sesi tidak ditemukan. Buka ulang dari halaman pesanan." };
 
-  const supabase = await createClient();
+  const supabase = createAnonClient();
   const { data, error } = await supabase.rpc("mark_order_paid", {
     p_order_number: orderNumber,
     p_guest_token: token,

@@ -49,19 +49,25 @@ export async function proxy(request: NextRequest) {
     (p) => path === p || path.startsWith(p + "/")
   );
 
-  if (needsStaff && !user) {
+  // Mengalihkan dengan response BARU akan membuang cookie hasil penyegaran
+  // token yang baru saja diset di `response`. Kalau itu terjadi, token lama
+  // sudah tidak sah (sudah dirotasi) sementara yang baru tidak pernah sampai ke
+  // browser — sesinya mati tanpa sebab yang jelas. Jadi cookie-nya harus
+  // dipindahkan ke response redirect.
+  const redirectTo = (pathname: string, withNext?: string) => {
     const url = request.nextUrl.clone();
-    url.pathname = "/masuk";
-    url.searchParams.set("next", path);
-    return NextResponse.redirect(url);
-  }
+    url.pathname = pathname;
+    if (withNext) url.searchParams.set("next", withNext);
+    const res = NextResponse.redirect(url);
+    for (const c of response.cookies.getAll()) res.cookies.set(c);
+    return res;
+  };
+
+  if (needsStaff && !user) return redirectTo("/masuk", path);
 
   // Sudah login tapi membuka halaman login → antar ke tempatnya bekerja.
-  if (path === "/masuk" && user) {
-    const url = request.nextUrl.clone();
-    url.pathname = "/dapur"; // halaman staf akan mengalihkan lagi sesuai peran
-    return NextResponse.redirect(url);
-  }
+  // Halaman staf akan mengalihkan lagi sesuai peran.
+  if (path === "/masuk" && user) return redirectTo("/dapur");
 
   return response;
 }
