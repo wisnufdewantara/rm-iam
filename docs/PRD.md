@@ -10,6 +10,8 @@
 | Status | Draft untuk implementasi |
 | Konteks | Demo tes kerja. Deploy di Vercel Hobby + Supabase Free. |
 | Referensi desain | https://porto-wfd.vercel.app/ (lokal: `~/projects/wisnu-cms`, lihat `styles/dial.css`) |
+| Nama konsep antarmuka | **Orbit Culture** (§4) |
+| Panduan untuk pembaca awam | [PANDUAN.md](PANDUAN.md) |
 
 ---
 
@@ -273,7 +275,19 @@ Transisi yang sah — apa pun di luar ini ditolak di level DB (trigger) *dan* di
 
 ---
 
-## 4. Konsep desain: dial bulat-bulat
+## 4. Konsep desain: **Orbit Culture**
+
+Nama resmi konsep antarmukanya. Aturannya satu dan berlaku di seluruh aplikasi:
+**apa yang dipilih menjadi pusat, dan sisanya mengitarinya.** Bukan sekadar
+hiasan bulat — itu juga model navigasinya (§4.1).
+
+Namanya diambil dari band metal Swedia *Orbit Culture*, favorit developer. Di
+bandnya nama itu tidak dimaksudkan berarti apa-apa secara khusus; di sini
+di-cocok-logikan — dan kebetulan pas: **orbit** karena elemennya benar-benar
+mengitari satu pusat, **culture** karena aturannya konsisten, tidak cuma berlaku
+di satu halaman.
+
+Penjelasan versi awam ada di [PANDUAN.md](PANDUAN.md).
 
 ### 4.1 Model interaksi
 

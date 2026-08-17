@@ -1,10 +1,15 @@
 # RM-IAM
 
-Aplikasi pemesanan mandiri (self-order) rumah makan dengan UI **dial bulat-bulat**.
-Bisa dipakai dari smartphone pengunjung maupun anjungan pemesanan mandiri (kiosk).
+Aplikasi pemesanan mandiri (self-order) rumah makan dengan konsep antarmuka
+**Orbit Culture** — lingkaran-lingkaran yang saling mengitari satu pusat, dan
+pusatnya berpindah mengikuti apa yang dipilih. Bisa dipakai dari smartphone
+pengunjung maupun anjungan pemesanan mandiri (kiosk).
 
-**Demo langsung: https://rm-iam.vercel.app** — cara mencobanya di
-[bagian "Coba dalam 3 menit"](#coba-dalam-3-menit) di bawah.
+**Demo langsung: https://rm-iam.vercel.app**
+
+📖 **Untuk pembaca non-teknis (HR, calon pengguna): [docs/PANDUAN.md](docs/PANDUAN.md)** —
+penjelasan tanpa jargon, filosofi desain Orbit Culture, dan langkah mencoba
+demonya. Mulai dari situ kalau Anda bukan developer.
 
 Spesifikasi lengkap: **[docs/PRD.md](docs/PRD.md)** — itu sumber kebenaran untuk
 alur, model data, RLS, dan keputusan desain beserta alasannya.
