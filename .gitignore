@@ -25,3 +25,6 @@ yarn-debug.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# lock file aplikasi office (OnlyOffice/LibreOffice) saat .md dibuka di sana
+.~lock.*#
